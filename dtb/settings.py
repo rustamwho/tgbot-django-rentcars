@@ -40,12 +40,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # 3rd party apps
-    'django_celery_beat',
+    # 'django_celery_beat',
     'debug_toolbar',
 
     # local apps
     'tgbot.apps.TgbotConfig',
-    'arcgis',
+    # 'arcgis',
 ]
 
 MIDDLEWARE = [
@@ -124,7 +124,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
@@ -161,6 +161,9 @@ if TELEGRAM_TOKEN is None:
     sys.exit(1)
 
 TELEGRAM_LOGS_CHAT_ID = os.getenv("TELEGRAM_LOGS_CHAT_ID", default=None)
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 
 # -----> SENTRY
 # import sentry_sdk
