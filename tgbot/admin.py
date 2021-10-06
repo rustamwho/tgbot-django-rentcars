@@ -1,11 +1,9 @@
 from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from telegram import ParseMode
 
 from dtb.settings import DEBUG
 
-from tgbot.models import Location
 from tgbot.models import User
 from tgbot.forms import BroadcastForm
 
@@ -48,8 +46,3 @@ class UserAdmin(admin.ModelAdmin):
             return render(
                 request, "admin/broadcast_message.html", {'form': form, 'title': u'Broadcast message'}
             )
-
-
-@admin.register(Location)
-class LocationAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user_id', 'created_at']

@@ -35,7 +35,7 @@ def setup_dispatcher(dp):
     # admin commands
     dp.add_handler(CommandHandler("admin", admin_handlers.admin))
     dp.add_handler(CommandHandler("stats", admin_handlers.stats))
-    dp.add_handler(CommandHandler('export_users', admin_handlers.export_users))
+    # dp.add_handler(CommandHandler('export_users', admin_handlers.export_users))
 
     # secret level
     dp.add_handler(CallbackQueryHandler(onboarding_handlers.secret_level, pattern=f"^{SECRET_LEVEL_BUTTON}"))
@@ -109,14 +109,14 @@ def set_up_commands(bot_instance: Bot) -> None:
     langs_with_commands: Dict[str, Dict[str, str]] = {
         'en': {
             'start': 'Start django bot 🚀',
-            'stats': 'Statistics of bot 📊',
+            # 'stats': 'Statistics of bot 📊',
             'admin': 'Show admin info ℹ️',
             'broadcast': 'Broadcast message 📨',
             'export_users': 'Export users.csv 👥',
         },
         'ru': {
             'start': 'Запустить django бота 🚀',
-            'stats': 'Статистика бота 📊',
+            # 'stats': 'Статистика бота 📊',
             'admin': 'Показать информацию для админов ℹ️',
             'broadcast': 'Отправить сообщение 📨',
             'export_users': 'Экспорт users.csv 👥',

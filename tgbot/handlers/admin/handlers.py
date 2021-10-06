@@ -28,7 +28,6 @@ def stats(update: Update, context) -> None:
         user_count=User.objects.count(),  # count may be ineffective if there are a lot of users.
         active_24=User.objects.filter(updated_at__gte=now() - timedelta(hours=24)).count()
     )
-
     update.message.reply_text(
         text,
         parse_mode=ParseMode.HTML,

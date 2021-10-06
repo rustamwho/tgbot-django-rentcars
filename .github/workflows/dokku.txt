@@ -1,3 +1,5 @@
+rename to .yml
+
 name: CI
 
 on:
