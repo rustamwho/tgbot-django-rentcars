@@ -112,14 +112,14 @@ def set_up_commands(bot_instance: Bot) -> None:
             # 'stats': 'Statistics of bot 📊',
             'admin': 'Show admin info ℹ️',
             'broadcast': 'Broadcast message 📨',
-            'export_users': 'Export users.csv 👥',
+            # 'export_users': 'Export users.csv 👥',
         },
         'ru': {
             'start': 'Запустить django бота 🚀',
             # 'stats': 'Статистика бота 📊',
             'admin': 'Показать информацию для админов ℹ️',
             'broadcast': 'Отправить сообщение 📨',
-            'export_users': 'Экспорт users.csv 👥',
+            # 'export_users': 'Экспорт users.csv 👥',
         }
     }
 
