@@ -10,16 +10,25 @@ from tgbot.forms import BroadcastForm
 from tgbot.tasks import broadcast_message
 from tgbot.handlers.broadcast_message.utils import _send_message
 
+from rentcars.models import PersonalData
+
+
+class QuestionInline(admin.StackedInline):
+    model = PersonalData
+    extra = 5
+    show_change_link = True
+
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
     list_display = [
-        'user_id', 'username', 'first_name', 'last_name', 
+        'user_id', 'username', 'first_name', 'last_name', 'personal_data',
         'language_code', 'deep_link',
         'created_at', 'updated_at', "is_blocked_bot",
     ]
     list_filter = ["is_blocked_bot", "is_moderator"]
     search_fields = ('username', 'user_id')
+    inlines = (QuestionInline,)
 
     actions = ['broadcast']
 
