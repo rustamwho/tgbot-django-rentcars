@@ -8,7 +8,7 @@ from telegram import Update
 
 from dtb.settings import DEBUG
 from tgbot.handlers.utils.info import extract_user_data_from_update
-from utils.models import CreateUpdateTracker, nb, CreateTracker
+from general_utils.models import CreateUpdateTracker, nb, CreateTracker
 
 
 class User(CreateUpdateTracker):
