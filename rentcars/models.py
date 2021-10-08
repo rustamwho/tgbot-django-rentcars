@@ -114,3 +114,27 @@ class PersonalData(CreateUpdateTracker):
 
     def __str__(self):
         return self.last_name
+
+
+class Contract(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='contact'
+    )
+
+    file = models.FileField(
+        verbose_name='Файл договора',
+        upload_to='contracts/'
+    )
+
+    created_at = models.DateField(
+        auto_now_add=True,
+        verbose_name='Дата формирования договора'
+    )
+    closed_at = models.DateField(
+        verbose_name='Дата завершения действия договора'
+    )
+
+    def __str__(self):
+        return self.user.username
