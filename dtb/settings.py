@@ -17,6 +17,10 @@ if os.path.isfile(dotenv_file):
     dotenv.load_dotenv(dotenv_file)
 
 
+# Path fo docx templates
+DOCX_TEMPLATES_DIR = BASE_DIR / 'docx_templates'
+
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
