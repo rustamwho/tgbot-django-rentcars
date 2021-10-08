@@ -64,7 +64,7 @@ def passport_number_validator(value: str) -> None:
 
 def passport_issued_by_validator(value: str):
     reg_validator = RegexValidator(
-        regex=r'^[а-яА-Я\s0-9]+$',
+        regex=r'^[а-яА-Я\s0-9-№]+$',
         message='В строке КЕМ ВЫДАН могут быть только русские буквы, пробелы '
                 'и цифры.'
     )

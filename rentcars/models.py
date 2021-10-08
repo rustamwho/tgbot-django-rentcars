@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.validators import EmailValidator
 
-from utils.models import CreateUpdateTracker
+from general_utils.models import CreateUpdateTracker
 from tgbot.models import User
 
 import rentcars.validators as cstm_validators
@@ -11,7 +11,7 @@ class PersonalData(CreateUpdateTracker):
     """
     Personal data of user in Russian language.
     """
-    GENDER_CHOICES = ((0, 'Мужской'), (1, 'Женский'))
+    GENDER_CHOICES = ((0, 'М'), (1, 'Ж'))
     user = models.OneToOneField(
         User,
         on_delete=models.PROTECT,
@@ -96,6 +96,11 @@ class PersonalData(CreateUpdateTracker):
         max_length=12,
         validators=[cstm_validators.phone_number_validator],
         verbose_name='Номер близкого человека'
+    )
+    close_person_address = models.CharField(
+        max_length=256,
+        verbose_name='Адрес места жительства',
+        validators=[cstm_validators.address_validator]
     )
 
     class Meta:
