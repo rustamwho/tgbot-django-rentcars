@@ -1,13 +1,13 @@
 pytz
 requests
-python-dotenv
+python-dotenv~=0.19.0
 ipython
 
 # Django
-django
+django~=3.2.7
 django-timezone-field 
 django-cors-headers
-django-debug-toolbar
+django-debug-toolbar~=3.2.2
 whitenoise
 
 # Django 3.0 async requirements
@@ -21,7 +21,7 @@ psycopg2-binary
 dj-database-url
 
 # Distributed tasks
-celery
+celery~=5.1.2
 redis
 django-celery-beat
 
@@ -30,3 +30,6 @@ python-telegram-bot
 
 # monitoring
 # sentry-sdk
+
+# Rendering docx from template
+docxtpl~=0.14.2
