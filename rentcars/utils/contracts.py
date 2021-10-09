@@ -51,5 +51,5 @@ def create_contract(user: User) -> DocxTemplate:
         os.path.join(settings.DOCX_TEMPLATES_DIR, 'contract_template.docx'))
 
     doc.render(context)
-    # doc.save('new_contract.docx')
+
     return doc
