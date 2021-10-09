@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import EmailValidator
 
 from general_utils.models import CreateUpdateTracker
+from general_utils.constants import GENDER_CHOICES
 from tgbot.models import User
 
 import rentcars.validators as cstm_validators
@@ -11,7 +12,6 @@ class PersonalData(CreateUpdateTracker):
     """
     Personal data of user in Russian language.
     """
-    GENDER_CHOICES = ((0, 'М'), (1, 'Ж'))
     user = models.OneToOneField(
         User,
         on_delete=models.PROTECT,
@@ -120,7 +120,7 @@ class Contract(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
-        related_name='contact'
+        related_name='contract'
     )
 
     file = models.FileField(
