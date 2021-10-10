@@ -30,6 +30,11 @@ def date_validate(value: str) -> None:
         regex=r'^(?P<day>\d{1,2}).(?P<month>\d{1,2}).(?P<year>\d{4})$',
         message='Дата должна быть в формате ДД.ММ.ГГГГ. Например, 31.12.2021.')
     reg_validator(value)
+    day, month, year = (int(x) for x in value.split('.'))
+    if day > 31 or month > 12 or year > datetime.date.today().year:
+        raise ValidationError(message=('Дата должна быть в формате ДД.ММ.ГГГГ.'
+                                       ' Например, 31.12.2021.')
+                              )
 
 
 def birthday_date_validate(born: str) -> None:
