@@ -10,3 +10,12 @@ def get_keyboard_for_gender():
     ]]
 
     return InlineKeyboardMarkup(buttons)
+
+
+def get_keyboard_for_address_similar():
+    buttons = [[
+        InlineKeyboardButton(text='Совпадает', callback_data='similar_addr'),
+        InlineKeyboardButton(text='Другой', callback_data='diff_addr'),
+    ]]
+
+    return InlineKeyboardMarkup(buttons)
