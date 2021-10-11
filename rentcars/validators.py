@@ -69,7 +69,7 @@ def passport_number_validator(value: str) -> None:
 
 def passport_issued_by_validator(value: str):
     reg_validator = RegexValidator(
-        regex=r'^[а-яА-Я\s0-9-№]+$',
+        regex=r'^[а-яА-Я\s0-9-№.]+$',
         message='В строке КЕМ ВЫДАН могут быть только русские буквы, пробелы '
                 'и цифры.'
     )
@@ -79,7 +79,7 @@ def passport_issued_by_validator(value: str):
 def address_validator(value: str) -> None:
     """Address contains 'г.', 'ул.', 'д.'."""
     reg_validator = RegexValidator(
-        regex=r'^[а-яА-Я.,\s0-9-]+$',
+        regex=r'^[а-яА-Я.,\s0-9-/№]+$',
         message='Адрес должен состоять только из русских букв, пробелов, точек'
                 ', запятых и тире.'
     )
