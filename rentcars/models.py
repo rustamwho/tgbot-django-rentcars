@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 from django.core.validators import EmailValidator
 
@@ -110,6 +112,13 @@ class PersonalData(CreateUpdateTracker):
     def save(self, *args, **kwargs):
         if self.phone_number.startswith('8'):
             self.phone_number = '+7' + self.phone_number[1:]
+        if isinstance(self.birthday, str):
+            self.birthday = datetime.datetime.strptime(self.birthday,
+                                                       '%d.%m.%Y')
+        if isinstance(self.passport_date_of_issue, str):
+            self.passport_date_of_issue = datetime.datetime.strptime(
+                self.passport_date_of_issue, '%d.%m.%Y'
+            )
         super().save(*args, **kwargs)
 
     def __str__(self):
