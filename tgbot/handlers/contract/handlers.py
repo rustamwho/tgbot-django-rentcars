@@ -16,13 +16,18 @@ from tgbot.models import User
 from tgbot.handlers.contract import static_text, keyboard_utils
 
 from rentcars.utils.contracts import create_contract
-from rentcars.models import Contract
+from rentcars.models import PersonalData, Contract
 from rentcars import validators
 
-(FIRST_NAME, LAST_NAME, MIDDLE_NAME, GENDER, BIRTHDAY, EMAIL, PHONE_NUMBER,
+(LAST_NAME, FIRST_NAME, MIDDLE_NAME, GENDER, BIRTHDAY, EMAIL, PHONE_NUMBER,
  PASSPORT_SERIAL, PASSPORT_NUMBER, PASSPORT_ISSUED_AT, PASSPORT_ISSUED_BY,
  ADDRESS_REGISTRATION, ADDRESS_RESIDENCE, CLOSE_PERSON_NAME,
- CLOSE_PERSON_PHONE, CLOSE_PERSON_ADDRESS) = range(16)
+ CLOSE_PERSON_PHONE, CLOSE_PERSON_ADDRESS) = (
+    'last_name', 'first_name', 'middle_name', 'gender', 'birthday', 'email',
+    'phone_number', 'passport_serial', 'passport_number',
+    'passport_date_of_issue', 'passport_issued_by', 'address_registration',
+    'address_of_residence', 'close_person_name', 'close_person_phone',
+    'close_person_address')
 
 
 def start_contract(update: Update, context: CallbackContext) -> None:
@@ -37,6 +42,14 @@ def start_contract(update: Update, context: CallbackContext) -> None:
                                       f'{days} дней.')
             return ConversationHandler.END
 
+    if u.personal_data is not None:
+        update.message.reply_text(text='Ваши персональные данные известны. '
+                                       'Формирую договор.')
+
+        create_save_send_contract(u, context)
+
+        return ConversationHandler.END
+
     context.bot.send_message(
         chat_id=u.user_id,
         text=static_text.NOT_EXISTS_CONTRACTS
@@ -46,39 +59,6 @@ def start_contract(update: Update, context: CallbackContext) -> None:
         text=static_text.ABOUT_FILLING_PERSONAL_DATA
     )
 
-    update.message.reply_text(
-        text=static_text.ASK_FIRST_NAME,
-        parse_mode=ParseMode.HTML
-    )
-    return FIRST_NAME
-    """new_contract = create_contract(u)
-    new_contract_io = io.BytesIO()
-    new_contract.save(new_contract_io)
-    new_contract_io.seek(0)
-    contr = Contract(
-        user=u,
-        file=File(new_contract_io, name=u.username + '.docx'),
-        closed_at=datetime.date.today()
-    )
-    contr.save()
-    context.bot.send_document(
-        chat_id=u.user_id,
-        document=contr.file,
-        filename=(u.last_name + ' ' + u.first_name + ' ' +
-                  get_verbose_date(contr.created_at) + '.docx')
-    )"""
-
-
-def first_name_handler(update: Update, context: CallbackContext) -> int:
-    text = update.message.text
-
-    try:
-        validators.russian_letters_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return FIRST_NAME
-
-    context.user_data[FIRST_NAME] = text
     update.message.reply_text(
         text=static_text.ASK_LAST_NAME,
         parse_mode=ParseMode.HTML
@@ -96,6 +76,23 @@ def last_name_handler(update: Update, context: CallbackContext) -> int:
         return LAST_NAME
 
     context.user_data[LAST_NAME] = text
+    update.message.reply_text(
+        text=static_text.ASK_FIRST_NAME,
+        parse_mode=ParseMode.HTML
+    )
+    return FIRST_NAME
+
+
+def first_name_handler(update: Update, context: CallbackContext) -> int:
+    text = update.message.text
+
+    try:
+        validators.russian_letters_validator(text)
+    except ValidationError as e:
+        update.message.reply_text(e.message + '\n\nПовторите ввод.')
+        return FIRST_NAME
+
+    context.user_data[FIRST_NAME] = text
     update.message.reply_text(
         text=static_text.ASK_MIDDLE_NAME,
         parse_mode=ParseMode.HTML
@@ -388,6 +385,61 @@ def close_person_phone_handler(update: Update,
     return CLOSE_PERSON_ADDRESS
 
 
+def get_finish_personal_data(context: CallbackContext) -> str:
+    text = static_text.END_PERSONAL_DATA.format(
+        name=(f'{context.user_data[LAST_NAME]} '
+              f'{context.user_data[FIRST_NAME]} '
+              f'{context.user_data[MIDDLE_NAME]}'),
+        gender=GENDER_CHOICES[context.user_data[GENDER]][1],
+        birthday=context.user_data[BIRTHDAY],
+        email=context.user_data[EMAIL],
+        phone_number=context.user_data[PHONE_NUMBER],
+        passport=(context.user_data[PASSPORT_SERIAL] + ' №' +
+                  context.user_data[PASSPORT_NUMBER]),
+        passport_issued=(context.user_data[PASSPORT_ISSUED_BY] + ' ' +
+                         context.user_data[PASSPORT_ISSUED_AT]),
+        address_registration=context.user_data[ADDRESS_REGISTRATION],
+        address_residence=context.user_data[ADDRESS_RESIDENCE],
+        close_person=(context.user_data[CLOSE_PERSON_PHONE] + ' ' +
+                      context.user_data[CLOSE_PERSON_NAME]),
+        close_person_address=context.user_data[CLOSE_PERSON_ADDRESS]
+    )
+
+    return text
+
+
+def save_personal_data(user: User, personal_data: dict) -> None:
+    pd = PersonalData(user=user, **personal_data)
+    pd.save()
+
+
+def create_save_send_contract(u: User,
+                              context: CallbackContext) -> None:
+    new_contract = create_contract(u)
+    new_contract_io = io.BytesIO()
+    new_contract.save(new_contract_io)
+    new_contract_io.seek(0)
+    contr = Contract(
+        user=u,
+        file=File(new_contract_io,
+                  name=u.username + str(now().date()) + '.docx'),
+        closed_at=datetime.date.today() + datetime.timedelta(days=10)
+    )
+    contr.save()
+
+    context.bot.send_message(
+        chat_id=u.user_id,
+        text='Сейчас пришлю договор. Его надо будет распечатать и подписать.'
+    )
+
+    context.bot.send_document(
+        chat_id=u.user_id,
+        document=contr.file,
+        filename=(u.last_name + ' ' + u.first_name + ' ' +
+                  get_verbose_date(contr.created_at) + '.docx')
+    )
+
+
 def close_person_address_similar_handler(update: Update,
                                          context: CallbackContext) -> int:
     answer = update.callback_query.data
@@ -399,12 +451,16 @@ def close_person_address_similar_handler(update: Update,
             'Адрес проживания близкого человека совпадает с местом проживания '
             'арендатора.'
         )
-
+        text = get_finish_personal_data(context)
         update.effective_message.reply_text(
-            text=static_text.END_PERSONAL_DATA,
+            text=text,
+            parse_mode=ParseMode.HTML,
         )
+        u = User.get_user(update, context)
 
-        print(context.user_data)
+        save_personal_data(u, context.user_data)
+
+        create_save_send_contract(u, context)
 
         return ConversationHandler.END
 
@@ -428,21 +484,24 @@ def close_person_address_diff_handler(update: Update,
 
     context.user_data[CLOSE_PERSON_ADDRESS] = text
 
+    text = get_finish_personal_data(context)
     update.message.reply_text(
-        text=static_text.END_PERSONAL_DATA,
+        text=text,
+        parse_mode=ParseMode.HTML,
     )
+    u = User.get_user(update, context)
 
-    print(context.user_data)
-    # TODO: Написать красивый вывод юзеру
+    save_personal_data(u, context.user_data)
+
+    create_save_send_contract(u, context)
+
     # TODO: Расписать докстринги для функций
-    # TODO: Написать сохранение в базу
 
     return ConversationHandler.END
 
 
 def cancel_handler(update: Update, context: CallbackContext):
-    """ Отменить весь процесс диалога. Данные будут утеряны
-    """
+    """ Отменить весь процесс диалога. Данные будут утеряны."""
     update.message.reply_text('Отмена. Для начала с нуля нажмите /contract')
     return ConversationHandler.END
 
@@ -453,13 +512,13 @@ def get_conversation_handler_for_contract():
             CommandHandler('contract', start_contract),
         ],
         states={
-            FIRST_NAME: [
-                MessageHandler(Filters.text & ~Filters.command,
-                               first_name_handler, pass_user_data=True)
-            ],
             LAST_NAME: [
                 MessageHandler(Filters.text & ~Filters.command,
                                last_name_handler, pass_user_data=True)
+            ],
+            FIRST_NAME: [
+                MessageHandler(Filters.text & ~Filters.command,
+                               first_name_handler, pass_user_data=True)
             ],
             MIDDLE_NAME: [
                 MessageHandler(Filters.text & ~Filters.command,
