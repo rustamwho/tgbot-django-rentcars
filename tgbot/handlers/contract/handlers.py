@@ -546,8 +546,6 @@ def close_person_address_diff_handler(update: Update,
 
     create_save_send_contract(u, context)
 
-    # TODO: Расписать докстринги для функций
-
     return ConversationHandler.END
 
 
