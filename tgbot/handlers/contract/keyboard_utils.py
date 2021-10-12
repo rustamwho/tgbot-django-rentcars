@@ -19,3 +19,11 @@ def get_keyboard_for_address_similar():
     ]]
 
     return InlineKeyboardMarkup(buttons)
+
+
+def get_keyboard_for_send_contract():
+    buttons = [[
+        InlineKeyboardButton(text='Скачать договор', callback_data='download')
+    ]]
+
+    return InlineKeyboardMarkup(buttons)
