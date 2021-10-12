@@ -13,7 +13,7 @@ from django.utils.timezone import now
 from general_utils.utils import get_verbose_date
 from general_utils.constants import GENDER_CHOICES
 from tgbot.models import User
-from tgbot.handlers.contract import static_text, keyboard_utils
+from tgbot.handlers.contract import static_text, keyboard_utils, manage_data
 
 from rentcars.utils.contracts import create_contract
 from rentcars.models import PersonalData, Contract
@@ -28,10 +28,9 @@ from rentcars import validators
     'passport_date_of_issue', 'passport_issued_by', 'address_registration',
     'address_of_residence', 'close_person_name', 'close_person_phone',
     'close_person_address')
-SEND_CONTRACT = 1
 
 
-def start_contract(update: Update, context: CallbackContext) -> None:
+def start_contract(update: Update, context: CallbackContext) -> int:
     """When getting command /contract."""
     u = User.get_user(update, context)
 
@@ -46,7 +45,7 @@ def start_contract(update: Update, context: CallbackContext) -> None:
                 text=f'До конца действия договора осталось {days} дней.',
                 reply_markup=keyboard_utils.get_keyboard_for_send_contract(),
             )
-            return SEND_CONTRACT
+            return ConversationHandler.END
 
     if u.personal_data is not None:
         update.message.reply_text(text='Ваши персональные данные известны. '
@@ -560,12 +559,10 @@ def get_conversation_handler_for_contract():
     conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler('contract', start_contract),
+            CallbackQueryHandler(send_existing_contract_handler,
+                                 pattern=f'^{manage_data.DOWNLOAD_CONTRACT}$')
         ],
         states={
-            SEND_CONTRACT: [
-                CallbackQueryHandler(send_existing_contract_handler,
-                                     pass_user_data=True)
-            ],
             LAST_NAME: [
                 MessageHandler(Filters.text & ~Filters.command,
                                last_name_handler, pass_user_data=True)
