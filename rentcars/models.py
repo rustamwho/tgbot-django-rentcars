@@ -112,6 +112,8 @@ class PersonalData(CreateUpdateTracker):
     def save(self, *args, **kwargs):
         if self.phone_number.startswith('8'):
             self.phone_number = '+7' + self.phone_number[1:]
+        if self.close_person_phone.startswith('8'):
+            self.close_person_phone = '+7' + self.close_person_phone[1:]
         if isinstance(self.birthday, str):
             self.birthday = datetime.datetime.strptime(self.birthday,
                                                        '%d.%m.%Y')
