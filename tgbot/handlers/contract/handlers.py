@@ -1,10 +1,10 @@
 import datetime
 import io
 
-from telegram import ParseMode, Update, ReplyKeyboardRemove
+from telegram import ParseMode, Update
 from telegram.ext.callbackcontext import CallbackContext
-from telegram.ext import MessageHandler, ConversationHandler, Filters, \
-    CommandHandler, CallbackQueryHandler
+from telegram.ext import (MessageHandler, ConversationHandler, Filters,
+                          CommandHandler, CallbackQueryHandler)
 from django.core.files import File
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
@@ -31,8 +31,11 @@ from rentcars import validators
 
 
 def start_contract(update: Update, context: CallbackContext) -> None:
+    """When getting command /contract."""
     u = User.get_user(update, context)
 
+    # If contracts with current user does exists
+    # Send remaining time of the contract
     if u.contract.exists():
         valid_contracts = u.contract.filter(closed_at__gte=now().date())
         if valid_contracts.exists():
@@ -67,6 +70,7 @@ def start_contract(update: Update, context: CallbackContext) -> None:
 
 
 def last_name_handler(update: Update, context: CallbackContext) -> int:
+    """Get and save last name of user."""
     text = update.message.text
 
     try:
@@ -84,6 +88,7 @@ def last_name_handler(update: Update, context: CallbackContext) -> int:
 
 
 def first_name_handler(update: Update, context: CallbackContext) -> int:
+    """Get and save first name of user."""
     text = update.message.text
 
     try:
@@ -101,6 +106,7 @@ def first_name_handler(update: Update, context: CallbackContext) -> int:
 
 
 def middle_name_handler(update: Update, context: CallbackContext) -> int:
+    """Get and save patronymic of user. Send hello with full name."""
     text = update.message.text
 
     try:
@@ -129,6 +135,7 @@ def middle_name_handler(update: Update, context: CallbackContext) -> int:
 
 
 def gender_handler(update: Update, context: CallbackContext) -> int:
+    """Get and save gender of user."""
     gender = int(update.callback_query.data)
     context.user_data[GENDER] = gender
 
@@ -142,6 +149,7 @@ def gender_handler(update: Update, context: CallbackContext) -> int:
 
 
 def birthday_handler(update: Update, context: CallbackContext) -> int:
+    """Get and save birthday date of user."""
     text = update.message.text
 
     try:
@@ -161,6 +169,7 @@ def birthday_handler(update: Update, context: CallbackContext) -> int:
 
 
 def email_handler(update: Update, context: CallbackContext) -> int:
+    """Get and save email of user."""
     text = update.message.text
 
     try:
@@ -183,6 +192,7 @@ def email_handler(update: Update, context: CallbackContext) -> int:
 
 
 def phone_number_handler(update: Update, context: CallbackContext) -> int:
+    """Get and save phone number of user."""
     text = update.message.text
 
     try:
@@ -202,6 +212,7 @@ def phone_number_handler(update: Update, context: CallbackContext) -> int:
 
 
 def passport_serial_handler(update: Update, context: CallbackContext) -> int:
+    """Get and save passport serial."""
     text = update.message.text
 
     try:
@@ -221,6 +232,7 @@ def passport_serial_handler(update: Update, context: CallbackContext) -> int:
 
 
 def passport_number_handler(update: Update, context: CallbackContext) -> int:
+    """Get and save passport number."""
     text = update.message.text
 
     try:
@@ -241,6 +253,7 @@ def passport_number_handler(update: Update, context: CallbackContext) -> int:
 
 def passport_issued_at_handler(update: Update,
                                context: CallbackContext) -> int:
+    """Get and save when a passport is issued."""
     text = update.message.text
 
     try:
@@ -261,6 +274,7 @@ def passport_issued_at_handler(update: Update,
 
 def passport_issued_by_handler(update: Update,
                                context: CallbackContext) -> int:
+    """Get and save the passport issued by whom."""
     text = update.message.text
 
     try:
@@ -281,6 +295,7 @@ def passport_issued_by_handler(update: Update,
 
 def address_registration_handler(update: Update,
                                  context: CallbackContext) -> int:
+    """Receive and save registration address of user."""
     text = update.message.text
 
     try:
@@ -302,6 +317,7 @@ def address_registration_handler(update: Update,
 
 def address_residence_similar_handler(update: Update,
                                       context: CallbackContext) -> int:
+    """Address residence similar with address registration."""
     answer = update.callback_query.data
     if answer == 'similar_addr':
         address = context.user_data[ADDRESS_REGISTRATION]
@@ -327,6 +343,7 @@ def address_residence_similar_handler(update: Update,
 
 def address_residence_diff_handler(update: Update,
                                    context: CallbackContext) -> int:
+    """Address of residence different with address registration."""
     text = update.message.text
 
     try:
@@ -346,6 +363,7 @@ def address_residence_diff_handler(update: Update,
 
 
 def close_person_name_handler(update: Update, context: CallbackContext) -> int:
+    """Receive and save close person name. E.G. 'Аделина (Жена).'"""
     text = update.message.text
 
     try:
@@ -366,6 +384,7 @@ def close_person_name_handler(update: Update, context: CallbackContext) -> int:
 
 def close_person_phone_handler(update: Update,
                                context: CallbackContext) -> int:
+    """Receive and save close person phone."""
     text = update.message.text
 
     try:
@@ -386,6 +405,7 @@ def close_person_phone_handler(update: Update,
 
 
 def get_finish_personal_data(context: CallbackContext) -> str:
+    """Beautiful formatting text with personal data's."""
     text = static_text.END_PERSONAL_DATA.format(
         name=(f'{context.user_data[LAST_NAME]} '
               f'{context.user_data[FIRST_NAME]} '
@@ -409,13 +429,18 @@ def get_finish_personal_data(context: CallbackContext) -> str:
 
 
 def save_personal_data(user: User, personal_data: dict) -> None:
+    """Create and save new object of PersonalData from dict."""
     pd = PersonalData(user=user, **personal_data)
     pd.save()
 
 
 def create_save_send_contract(u: User,
                               context: CallbackContext) -> None:
+    """Create contract .docx with user and save Contract object."""
+    # Create new contract file
     new_contract = create_contract(u)
+
+    # Create Contract object with new contract file
     new_contract_io = io.BytesIO()
     new_contract.save(new_contract_io)
     new_contract_io.seek(0)
@@ -442,6 +467,7 @@ def create_save_send_contract(u: User,
 
 def close_person_address_similar_handler(update: Update,
                                          context: CallbackContext) -> int:
+    """Address of close person similar with user address."""
     answer = update.callback_query.data
     if answer == 'similar_addr':
         address = context.user_data[ADDRESS_RESIDENCE]
@@ -474,6 +500,7 @@ def close_person_address_similar_handler(update: Update,
 
 def close_person_address_diff_handler(update: Update,
                                       context: CallbackContext) -> int:
+    """Address residence of close person different with address of user."""
     text = update.message.text
 
     try:
@@ -501,12 +528,13 @@ def close_person_address_diff_handler(update: Update,
 
 
 def cancel_handler(update: Update, context: CallbackContext):
-    """ Отменить весь процесс диалога. Данные будут утеряны."""
+    """Отменить весь процесс диалога. Данные будут утеряны."""
     update.message.reply_text('Отмена. Для начала с нуля нажмите /contract')
     return ConversationHandler.END
 
 
 def get_conversation_handler_for_contract():
+    """Return Conversation handler for /contract"""
     conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler('contract', start_contract),
