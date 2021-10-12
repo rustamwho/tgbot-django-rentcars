@@ -57,6 +57,11 @@ def setup_dispatcher(dp):
         Filters.animation, files.show_file_id,
     ))
 
+    # Unknown messages
+    dp.add_handler(
+        MessageHandler(Filters.all, onboarding_handlers.answer_to_unknown)
+    )
+
     # handling errors
     dp.add_error_handler(error.send_stacktrace_to_tg_chat)
 
@@ -112,14 +117,16 @@ def process_telegram_event(update_json):
 def set_up_commands(bot_instance: Bot) -> None:
     langs_with_commands: Dict[str, Dict[str, str]] = {
         'en': {
-            'start': 'Start django bot 🚀',
+            # 'start': 'Start django bot 🚀',
             # 'stats': 'Statistics of bot 📊',
+            'contract': 'All about contract 📝',
             'admin': 'Show admin info ℹ️',
             'broadcast': 'Broadcast message 📨',
             # 'export_users': 'Export users.csv 👥',
         },
         'ru': {
-            'start': 'Запустить django бота 🚀',
+            # 'start': 'Запустить django бота 🚀',
+            'contract': 'Договор 📝',
             # 'stats': 'Статистика бота 📊',
             'admin': 'Показать информацию для админов ℹ️',
             'broadcast': 'Отправить сообщение 📨',
