@@ -4,17 +4,27 @@ import html
 
 import telegram
 from telegram import Update
+from telegram.ext.callbackcontext import CallbackContext
 
 from dtb.settings import TELEGRAM_LOGS_CHAT_ID
 from tgbot.models import User
 
 
-def send_stacktrace_to_tg_chat(update: Update, context) -> None:
+def send_stacktrace_to_tg_chat(update: Update,
+                               context: CallbackContext) -> None:
     u = User.get_user(update, context)
 
-    logging.error("Exception while handling an update:", exc_info=context.error)
+    logging.error("Exception while handling an update:",
+                  exc_info=context.error)
 
-    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+    # If user blocked that bot
+    if 'bot was blocked by the user' in context.error.__str__():
+        u.is_blocked_bot = True
+        u.save()
+        return
+
+    tb_list = traceback.format_exception(None, context.error,
+                                         context.error.__traceback__)
     tb_string = ''.join(tb_list)
 
     # Build the message with some markup and additional information about what happened.
@@ -24,12 +34,9 @@ def send_stacktrace_to_tg_chat(update: Update, context) -> None:
         f'<pre>{html.escape(tb_string)}</pre>'
     )
 
-    user_message = """
-😔 Something broke inside the bot.
-It is because we are constantly improving our service but sometimes we might forget to test some basic stuff.
-We already received all the details to fix the issue.
-Return to /start
-"""
+    user_message = ('😔 Прошу прощения, с ботом что-то не так. '
+                    'Автору уже отправлена информация об ошибке. '
+                    'Устраним проблему в кратчайшие сроки.\n')
     context.bot.send_message(
         chat_id=u.user_id,
         text=user_message,
