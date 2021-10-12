@@ -28,6 +28,7 @@ from rentcars import validators
     'passport_date_of_issue', 'passport_issued_by', 'address_registration',
     'address_of_residence', 'close_person_name', 'close_person_phone',
     'close_person_address')
+SEND_CONTRACT = 1
 
 
 def start_contract(update: Update, context: CallbackContext) -> None:
@@ -41,9 +42,11 @@ def start_contract(update: Update, context: CallbackContext) -> None:
         if valid_contracts.exists():
             valid_contract = valid_contracts.order_by('closed_at').last()
             days = (valid_contract.closed_at - now().date()).days
-            update.message.reply_text(f'До конца действия договора осталось '
-                                      f'{days} дней.')
-            return ConversationHandler.END
+            update.message.reply_text(
+                text=f'До конца действия договора осталось {days} дней.',
+                reply_markup=keyboard_utils.get_keyboard_for_send_contract(),
+            )
+            return SEND_CONTRACT
 
     if u.personal_data is not None:
         update.message.reply_text(text='Ваши персональные данные известны. '
@@ -67,6 +70,27 @@ def start_contract(update: Update, context: CallbackContext) -> None:
         parse_mode=ParseMode.HTML
     )
     return LAST_NAME
+
+
+def send_existing_contract_handler(update: Update,
+                                   context: CallbackContext) -> int:
+    """Send existing contract with current user"""
+    u = User.get_user(update, context)
+    text = update.effective_message.text
+
+    update.effective_message.edit_text(text=text)
+
+    valid_contracts = u.contract.filter(closed_at__gte=now().date())
+    valid_contract = valid_contracts.order_by('closed_at').last()
+
+    context.bot.send_document(
+        chat_id=u.user_id,
+        document=valid_contract.file,
+        filename=(u.last_name + ' ' + u.first_name + ' ' +
+                  get_verbose_date(valid_contract.created_at) + '.docx')
+    )
+
+    return ConversationHandler.END
 
 
 def last_name_handler(update: Update, context: CallbackContext) -> int:
@@ -540,6 +564,10 @@ def get_conversation_handler_for_contract():
             CommandHandler('contract', start_contract),
         ],
         states={
+            SEND_CONTRACT: [
+                CallbackQueryHandler(send_existing_contract_handler,
+                                     pass_user_data=True)
+            ],
             LAST_NAME: [
                 MessageHandler(Filters.text & ~Filters.command,
                                last_name_handler, pass_user_data=True)
