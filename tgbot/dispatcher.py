@@ -21,6 +21,7 @@ from tgbot.handlers.admin import handlers as admin_handlers
 from tgbot.handlers.onboarding import handlers as onboarding_handlers
 from tgbot.handlers.broadcast_message import handlers as broadcast_handlers
 from tgbot.handlers.contract import handlers as contract_handlers
+from tgbot.handlers.personal_data import handlers as pd_handlers
 from tgbot.handlers.onboarding.manage_data import SECRET_LEVEL_BUTTON
 from tgbot.handlers.broadcast_message.manage_data import CONFIRM_DECLINE_BROADCAST
 from tgbot.handlers.broadcast_message.static_text import broadcast_command
@@ -40,6 +41,9 @@ def setup_dispatcher(dp):
 
     # contract
     dp.add_handler(contract_handlers.get_conversation_handler_for_contract())
+
+    # personal data
+    dp.add_handler(CommandHandler('personal_data',pd_handlers.get_my_personal_data_handler))
 
     # secret level
     dp.add_handler(CallbackQueryHandler(onboarding_handlers.secret_level, pattern=f"^{SECRET_LEVEL_BUTTON}"))
@@ -120,6 +124,7 @@ def set_up_commands(bot_instance: Bot) -> None:
             # 'start': 'Start django bot 🚀',
             # 'stats': 'Statistics of bot 📊',
             'contract': 'All about contract 📝',
+            'personal_data': 'See my personal data 🗂',
             'admin': 'Show admin info ℹ️',
             'broadcast': 'Broadcast message 📨',
             # 'export_users': 'Export users.csv 👥',
@@ -127,6 +132,7 @@ def set_up_commands(bot_instance: Bot) -> None:
         'ru': {
             # 'start': 'Запустить django бота 🚀',
             'contract': 'Договор 📝',
+            'personal_data': 'Посмотреть мои данные 🗂',
             # 'stats': 'Статистика бота 📊',
             'admin': 'Показать информацию для админов ℹ️',
             'broadcast': 'Отправить сообщение 📨',
