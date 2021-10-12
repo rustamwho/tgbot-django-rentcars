@@ -39,7 +39,7 @@ def setup_dispatcher(dp):
     # dp.add_handler(CommandHandler('export_users', admin_handlers.export_users))
 
     # contract
-    dp.add_handler(contract_handlers.get_conversation_handler_for_contract(),1)
+    dp.add_handler(contract_handlers.get_conversation_handler_for_contract())
 
     # secret level
     dp.add_handler(CallbackQueryHandler(onboarding_handlers.secret_level, pattern=f"^{SECRET_LEVEL_BUTTON}"))
