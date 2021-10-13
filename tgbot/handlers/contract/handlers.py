@@ -85,8 +85,9 @@ def send_existing_contract_handler(update: Update,
     context.bot.send_document(
         chat_id=u.user_id,
         document=valid_contract.file,
-        filename=(u.personal_data.last_name + ' ' + u.personal_data.first_name + ' ' +
-                  get_verbose_date(valid_contract.created_at) + '.docx')
+        filename=(
+                u.personal_data.last_name + ' ' + u.personal_data.first_name +
+                ' ' + get_verbose_date(valid_contract.created_at) + '.docx')
     )
 
     return ConversationHandler.END
@@ -483,8 +484,9 @@ def create_save_send_contract(u: User,
     context.bot.send_document(
         chat_id=u.user_id,
         document=contr.file,
-        filename=(u.personal_data.last_name + ' ' + u.personal_data.first_name + ' ' +
-                  get_verbose_date(contr.created_at) + '.docx')
+        filename=(
+                u.personal_data.last_name + ' ' + u.personal_data.first_name + ' ' +
+                get_verbose_date(contr.created_at) + '.docx')
     )
 
 
