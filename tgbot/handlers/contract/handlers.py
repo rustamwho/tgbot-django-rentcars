@@ -47,7 +47,7 @@ def start_contract(update: Update, context: CallbackContext) -> int:
             )
             return ConversationHandler.END
 
-    if u.personal_data is not None:
+    if PersonalData.objects.filter(user=u).exists():
         update.message.reply_text(text='Ваши персональные данные известны. '
                                        'Формирую договор.')
 
@@ -85,7 +85,7 @@ def send_existing_contract_handler(update: Update,
     context.bot.send_document(
         chat_id=u.user_id,
         document=valid_contract.file,
-        filename=(u.last_name + ' ' + u.first_name + ' ' +
+        filename=(u.personal_data.last_name + ' ' + u.personal_data.first_name + ' ' +
                   get_verbose_date(valid_contract.created_at) + '.docx')
     )
 
@@ -483,7 +483,7 @@ def create_save_send_contract(u: User,
     context.bot.send_document(
         chat_id=u.user_id,
         document=contr.file,
-        filename=(u.last_name + ' ' + u.first_name + ' ' +
+        filename=(u.personal_data.last_name + ' ' + u.personal_data.first_name + ' ' +
                   get_verbose_date(contr.created_at) + '.docx')
     )
 

@@ -1,6 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from general_utils.constants import GENDER_CHOICES
+from tgbot.handlers.contract.manage_data import DOWNLOAD_CONTRACT
 
 
 def get_keyboard_for_gender():
@@ -23,7 +24,7 @@ def get_keyboard_for_address_similar():
 
 def get_keyboard_for_send_contract():
     buttons = [[
-        InlineKeyboardButton(text='Скачать договор', callback_data='download')
+        InlineKeyboardButton(text='Скачать договор', callback_data=DOWNLOAD_CONTRACT)
     ]]
 
     return InlineKeyboardMarkup(buttons)
