@@ -20,8 +20,11 @@ from tgbot.handlers.utils import files, error
 from tgbot.handlers.admin import handlers as admin_handlers
 from tgbot.handlers.onboarding import handlers as onboarding_handlers
 from tgbot.handlers.broadcast_message import handlers as broadcast_handlers
+
 from tgbot.handlers.contract import handlers as contract_handlers
 from tgbot.handlers.personal_data import handlers as pd_handlers
+from tgbot.handlers.personal_data.manage_data import BASE_FOR_MENU
+
 from tgbot.handlers.onboarding.manage_data import SECRET_LEVEL_BUTTON
 from tgbot.handlers.broadcast_message.manage_data import CONFIRM_DECLINE_BROADCAST
 from tgbot.handlers.broadcast_message.static_text import broadcast_command
@@ -44,6 +47,9 @@ def setup_dispatcher(dp):
 
     # personal data
     dp.add_handler(CommandHandler('personal_data',pd_handlers.get_my_personal_data_handler))
+    dp.add_handler(CallbackQueryHandler(pd_handlers.main_menu_edit_pd_handler,
+                                        pattern=f"^{BASE_FOR_MENU}"))
+    dp.add_handler(pd_handlers.get_pd_edit_conversation_handler())
 
     # secret level
     dp.add_handler(CallbackQueryHandler(onboarding_handlers.secret_level, pattern=f"^{SECRET_LEVEL_BUTTON}"))
