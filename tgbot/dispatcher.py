@@ -127,21 +127,19 @@ def process_telegram_event(update_json):
 def set_up_commands(bot_instance: Bot) -> None:
     langs_with_commands: Dict[str, Dict[str, str]] = {
         'en': {
-            # 'start': 'Start django bot 🚀',
-            # 'stats': 'Statistics of bot 📊',
             'contract': 'All about contract 📝',
             'personal_data': 'See my personal data 🗂',
             'admin': 'Show admin info ℹ️',
             'broadcast': 'Broadcast message 📨',
+            'cancel': 'Cancel the current operation ❌'
             # 'export_users': 'Export users.csv 👥',
         },
         'ru': {
-            # 'start': 'Запустить django бота 🚀',
             'contract': 'Договор 📝',
             'personal_data': 'Посмотреть мои данные 🗂',
-            # 'stats': 'Статистика бота 📊',
             'admin': 'Показать информацию для админов ℹ️',
             'broadcast': 'Отправить сообщение 📨',
+            'cancel': 'Отмена ❌',
             # 'export_users': 'Экспорт users.csv 👥',
         }
     }
