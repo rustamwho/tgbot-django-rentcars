@@ -1,11 +1,15 @@
 import datetime
 import io
 
+from pytils.translit import slugify
+
 from telegram import ParseMode, Update
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.ext import (MessageHandler, ConversationHandler, Filters,
                           CommandHandler, CallbackQueryHandler)
+
 from django.core.files import File
+from django.forms.models import model_to_dict
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.utils.timezone import now
@@ -28,9 +32,10 @@ from rentcars import validators
     'passport_date_of_issue', 'passport_issued_by', 'address_registration',
     'address_of_residence', 'close_person_name', 'close_person_phone',
     'close_person_address')
+ACCEPT = 'ACCEPT_PD'
 
 
-def start_contract(update: Update, context: CallbackContext) -> int:
+def start_contract(update: Update, context: CallbackContext) -> str:
     """When getting command /contract."""
     u = User.get_user(update, context)
 
@@ -47,13 +52,18 @@ def start_contract(update: Update, context: CallbackContext) -> int:
             )
             return ConversationHandler.END
 
-    if PersonalData.objects.filter(user=u).exists():
-        update.message.reply_text(text='Ваши персональные данные известны. '
-                                       'Формирую договор.')
+    if hasattr(u, 'personal_data'):
+        update.message.reply_text(text='Ваши персональные данные известны. ')
 
-        create_save_send_contract(u, context)
+        # Send all Personal Data with keyboard for accepting
+        text = get_finish_personal_data(u)
+        update.effective_message.reply_text(
+            text=text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=keyboard_utils.get_pd_accept_decline_keyboard(),
+        )
 
-        return ConversationHandler.END
+        return ACCEPT
 
     context.bot.send_message(
         chat_id=u.user_id,
@@ -72,7 +82,7 @@ def start_contract(update: Update, context: CallbackContext) -> int:
 
 
 def send_existing_contract_handler(update: Update,
-                                   context: CallbackContext) -> int:
+                                   context: CallbackContext) -> str:
     """Send existing contract with current user"""
     u = User.get_user(update, context)
     text = update.effective_message.text
@@ -93,7 +103,7 @@ def send_existing_contract_handler(update: Update,
     return ConversationHandler.END
 
 
-def last_name_handler(update: Update, context: CallbackContext) -> int:
+def last_name_handler(update: Update, context: CallbackContext) -> str:
     """Get and save last name of user."""
     text = update.message.text
 
@@ -111,7 +121,7 @@ def last_name_handler(update: Update, context: CallbackContext) -> int:
     return FIRST_NAME
 
 
-def first_name_handler(update: Update, context: CallbackContext) -> int:
+def first_name_handler(update: Update, context: CallbackContext) -> str:
     """Get and save first name of user."""
     text = update.message.text
 
@@ -129,7 +139,7 @@ def first_name_handler(update: Update, context: CallbackContext) -> int:
     return MIDDLE_NAME
 
 
-def middle_name_handler(update: Update, context: CallbackContext) -> int:
+def middle_name_handler(update: Update, context: CallbackContext) -> str:
     """Get and save patronymic of user. Send hello with full name."""
     text = update.message.text
 
@@ -158,7 +168,7 @@ def middle_name_handler(update: Update, context: CallbackContext) -> int:
     return GENDER
 
 
-def gender_handler(update: Update, context: CallbackContext) -> int:
+def gender_handler(update: Update, context: CallbackContext) -> str:
     """Get and save gender of user."""
     gender = int(update.callback_query.data)
     context.user_data[GENDER] = gender
@@ -172,7 +182,7 @@ def gender_handler(update: Update, context: CallbackContext) -> int:
     return BIRTHDAY
 
 
-def birthday_handler(update: Update, context: CallbackContext) -> int:
+def birthday_handler(update: Update, context: CallbackContext) -> str:
     """Get and save birthday date of user."""
     text = update.message.text
 
@@ -192,7 +202,7 @@ def birthday_handler(update: Update, context: CallbackContext) -> int:
     return EMAIL
 
 
-def email_handler(update: Update, context: CallbackContext) -> int:
+def email_handler(update: Update, context: CallbackContext) -> str:
     """Get and save email of user."""
     text = update.message.text
 
@@ -215,7 +225,7 @@ def email_handler(update: Update, context: CallbackContext) -> int:
     return PHONE_NUMBER
 
 
-def phone_number_handler(update: Update, context: CallbackContext) -> int:
+def phone_number_handler(update: Update, context: CallbackContext) -> str:
     """Get and save phone number of user."""
     text = update.message.text
 
@@ -235,7 +245,7 @@ def phone_number_handler(update: Update, context: CallbackContext) -> int:
     return PASSPORT_SERIAL
 
 
-def passport_serial_handler(update: Update, context: CallbackContext) -> int:
+def passport_serial_handler(update: Update, context: CallbackContext) -> str:
     """Get and save passport serial."""
     text = update.message.text
 
@@ -255,7 +265,7 @@ def passport_serial_handler(update: Update, context: CallbackContext) -> int:
     return PASSPORT_NUMBER
 
 
-def passport_number_handler(update: Update, context: CallbackContext) -> int:
+def passport_number_handler(update: Update, context: CallbackContext) -> str:
     """Get and save passport number."""
     text = update.message.text
 
@@ -276,7 +286,7 @@ def passport_number_handler(update: Update, context: CallbackContext) -> int:
 
 
 def passport_issued_at_handler(update: Update,
-                               context: CallbackContext) -> int:
+                               context: CallbackContext) -> str:
     """Get and save when a passport is issued."""
     text = update.message.text
 
@@ -297,7 +307,7 @@ def passport_issued_at_handler(update: Update,
 
 
 def passport_issued_by_handler(update: Update,
-                               context: CallbackContext) -> int:
+                               context: CallbackContext) -> str:
     """Get and save the passport issued by whom."""
     text = update.message.text
 
@@ -318,7 +328,7 @@ def passport_issued_by_handler(update: Update,
 
 
 def address_registration_handler(update: Update,
-                                 context: CallbackContext) -> int:
+                                 context: CallbackContext) -> str:
     """Receive and save registration address of user."""
     text = update.message.text
 
@@ -340,7 +350,7 @@ def address_registration_handler(update: Update,
 
 
 def address_residence_similar_handler(update: Update,
-                                      context: CallbackContext) -> int:
+                                      context: CallbackContext) -> str:
     """Address residence similar with address registration."""
     answer = update.callback_query.data
     if answer == 'similar_addr':
@@ -366,7 +376,7 @@ def address_residence_similar_handler(update: Update,
 
 
 def address_residence_diff_handler(update: Update,
-                                   context: CallbackContext) -> int:
+                                   context: CallbackContext) -> str:
     """Address of residence different with address registration."""
     text = update.message.text
 
@@ -386,7 +396,7 @@ def address_residence_diff_handler(update: Update,
     return CLOSE_PERSON_NAME
 
 
-def close_person_name_handler(update: Update, context: CallbackContext) -> int:
+def close_person_name_handler(update: Update, context: CallbackContext) -> str:
     """Receive and save close person name. E.G. 'Аделина (Жена).'"""
     text = update.message.text
 
@@ -407,7 +417,7 @@ def close_person_name_handler(update: Update, context: CallbackContext) -> int:
 
 
 def close_person_phone_handler(update: Update,
-                               context: CallbackContext) -> int:
+                               context: CallbackContext) -> str:
     """Receive and save close person phone."""
     text = update.message.text
 
@@ -428,26 +438,18 @@ def close_person_phone_handler(update: Update,
     return CLOSE_PERSON_ADDRESS
 
 
-def get_finish_personal_data(context: CallbackContext) -> str:
+def get_finish_personal_data(user: User) -> str:
     """Beautiful formatting text with personal data's."""
-    text = static_text.END_PERSONAL_DATA.format(
-        name=(f'{context.user_data[LAST_NAME]} '
-              f'{context.user_data[FIRST_NAME]} '
-              f'{context.user_data[MIDDLE_NAME]}'),
-        gender=GENDER_CHOICES[context.user_data[GENDER]][1],
-        birthday=context.user_data[BIRTHDAY],
-        email=context.user_data[EMAIL],
-        phone_number=context.user_data[PHONE_NUMBER],
-        passport=(context.user_data[PASSPORT_SERIAL] + ' №' +
-                  context.user_data[PASSPORT_NUMBER]),
-        passport_issued=(context.user_data[PASSPORT_ISSUED_BY] + ' ' +
-                         context.user_data[PASSPORT_ISSUED_AT]),
-        address_registration=context.user_data[ADDRESS_REGISTRATION],
-        address_residence=context.user_data[ADDRESS_RESIDENCE],
-        close_person=(context.user_data[CLOSE_PERSON_PHONE] + ' ' +
-                      context.user_data[CLOSE_PERSON_NAME]),
-        close_person_address=context.user_data[CLOSE_PERSON_ADDRESS]
+
+    pd = model_to_dict(user.personal_data, exclude='user')
+
+    pd['gender'] = GENDER_CHOICES[pd['gender']][1]
+    pd['birthday'] = datetime.date.strftime(pd['birthday'], '%d.%m.%Y')
+    pd['passport_date_of_issue'] = datetime.date.strftime(
+        pd['passport_date_of_issue'], '%d.%m.%Y'
     )
+
+    text = static_text.PERSONAL_DATA.format(**pd)
 
     return text
 
@@ -471,7 +473,8 @@ def create_save_send_contract(u: User,
     contr = Contract(
         user=u,
         file=File(new_contract_io,
-                  name=u.username + str(now().date()) + '.docx'),
+                  name=(slugify(u.personal_data.last_name) +
+                        str(now().date()) + '.docx')),
         closed_at=datetime.date.today() + datetime.timedelta(days=10)
     )
     contr.save()
@@ -485,13 +488,13 @@ def create_save_send_contract(u: User,
         chat_id=u.user_id,
         document=contr.file,
         filename=(
-                u.personal_data.last_name + ' ' + u.personal_data.first_name + ' ' +
-                get_verbose_date(contr.created_at) + '.docx')
+                u.personal_data.last_name + ' ' + u.personal_data.first_name +
+                ' ' + get_verbose_date(contr.created_at) + '.docx')
     )
 
 
 def close_person_address_similar_handler(update: Update,
-                                         context: CallbackContext) -> int:
+                                         context: CallbackContext) -> str:
     """Address of close person similar with user address."""
     answer = update.callback_query.data
     if answer == 'similar_addr':
@@ -502,18 +505,20 @@ def close_person_address_similar_handler(update: Update,
             'Адрес проживания близкого человека совпадает с местом проживания '
             'арендатора.'
         )
-        text = get_finish_personal_data(context)
+
+        # Save Personal Data
+        u = User.get_user(update, context)
+        save_personal_data(u, context.user_data)
+
+        # Send all Personal Data with keyboard for accepting
+        text = get_finish_personal_data(u)
         update.effective_message.reply_text(
             text=text,
             parse_mode=ParseMode.HTML,
+            reply_markup=keyboard_utils.get_pd_accept_decline_keyboard(),
         )
-        u = User.get_user(update, context)
 
-        save_personal_data(u, context.user_data)
-
-        create_save_send_contract(u, context)
-
-        return ConversationHandler.END
+        return ACCEPT
 
     update.effective_message.edit_text(
         text=static_text.ASK_CLOSE_PERSON_ADDRESS_SECOND,
@@ -524,7 +529,7 @@ def close_person_address_similar_handler(update: Update,
 
 
 def close_person_address_diff_handler(update: Update,
-                                      context: CallbackContext) -> int:
+                                      context: CallbackContext) -> str:
     """Address residence of close person different with address of user."""
     text = update.message.text
 
@@ -536,21 +541,41 @@ def close_person_address_diff_handler(update: Update,
 
     context.user_data[CLOSE_PERSON_ADDRESS] = text
 
-    text = get_finish_personal_data(context)
+    # Save Personal Data
+    u = User.get_user(update, context)
+    save_personal_data(u, context.user_data)
+
+    # Send all Personal Data with keyboard for accepting
+    text = get_finish_personal_data(u)
     update.message.reply_text(
         text=text,
         parse_mode=ParseMode.HTML,
+        reply_markup=keyboard_utils.get_pd_accept_decline_keyboard(),
     )
-    u = User.get_user(update, context)
 
-    save_personal_data(u, context.user_data)
-
-    create_save_send_contract(u, context)
-
-    return ConversationHandler.END
+    return ACCEPT
 
 
-def cancel_handler(update: Update, context: CallbackContext):
+def accept_pd_handler(update: Update, context: CallbackContext) -> str:
+    query = update.callback_query
+    data = query.data
+
+    if data == manage_data.CORRECT:
+        u = User.get_user(update, context)
+
+        create_save_send_contract(u, context)
+
+        return ConversationHandler.END
+
+    elif data == manage_data.WRONG:
+        query.edit_message_text(
+            text=static_text.PERSONAL_DATA_WRONG,
+            parse_mode=ParseMode.HTML
+        )
+        return ConversationHandler.END
+
+
+def cancel_handler(update: Update, context: CallbackContext) -> int:
     """Отменить весь процесс диалога. Данные будут утеряны."""
     update.message.reply_text('Отмена. Для начала с нуля нажмите /contract')
     return ConversationHandler.END
@@ -635,6 +660,10 @@ def get_conversation_handler_for_contract():
                                close_person_address_diff_handler,
                                pass_user_data=True)
             ],
+            ACCEPT: [
+                CallbackQueryHandler(accept_pd_handler,
+                                     pattern=f'^{manage_data.BASE_FOR_ACCEPT}')
+            ]
         },
         fallbacks=[
             CommandHandler('cancel', cancel_handler),
