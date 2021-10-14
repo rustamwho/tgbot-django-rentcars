@@ -33,3 +33,6 @@ python-telegram-bot
 
 # Rendering docx from template
 docxtpl~=0.14.2
+
+# For slugify
+pytils~=0.3
