@@ -48,14 +48,21 @@ ASK_CLOSE_PERSON_ADDRESS_SECOND = ('<b>АДРЕС ПРОЖИВАНИЯ БЛИЗ�
                                    'регион, город, улицу и дом. Например, '
                                    'Республика Татарстан, г. Казань, ул. '
                                    'Баумана, д. 1</i>')
-END_PERSONAL_DATA = ('Ваши данные:\n<b>{name}</b>\n'
-                     '<b>Пол:</b> {gender}\n'
-                     '<b>Дата рождения:</b> {birthday}\n'
-                     '<b>Почта:</b> {email}\n'
-                     '<b>Номер телефона:</b> {phone_number}\n'
-                     '<b>Паспорт:</b> {passport}\n'
-                     '<b>Выдан:</b> {passport_issued}\n'
-                     '<b>Адрес прописки:</b> {address_registration}\n'
-                     '<b>Адрес проживания:</b> {address_residence}\n\n'
-                     '<b>Близкий человек:</b> {close_person}\n'
-                     '<b>Адрес:</b> {close_person_address}')
+
+PERSONAL_DATA_WRONG = ('Для редактирования данных выберите в меню '
+                       '"<b>Мои данные</b>".\nИли нажмите /personal_data')
+
+PERSONAL_DATA = ('Ваши данные:\n'
+                 '<b>{last_name} {first_name} {middle_name}</b>\n'
+                 '<b>Пол:</b> {gender}\n'
+                 '<b>Дата рождения:</b> {birthday}\n'
+                 '<b>Почта:</b> {email}\n'
+                 '<b>Номер телефона:</b> {phone_number}\n'
+                 '<b>Паспорт:</b> {passport_serial} №{passport_number}\n'
+                 '<b>Выдан:</b> {passport_date_of_issue} '
+                 '{passport_issued_by}\n'
+                 '<b>Адрес прописки:</b> {address_registration}\n'
+                 '<b>Адрес проживания:</b> {address_of_residence}\n\n'
+                 '<b>Близкий человек:</b> {close_person_phone} '
+                 '{close_person_name}\n'
+                 '<b>Адрес:</b> {close_person_address}')
