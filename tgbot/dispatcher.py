@@ -128,18 +128,18 @@ def set_up_commands(bot_instance: Bot) -> None:
     langs_with_commands: Dict[str, Dict[str, str]] = {
         'en': {
             'contract': 'All about contract 📝',
-            'personal_data': 'See my personal data 🗂',
+            'personal_data': 'My personal data 🗂',
+            'cancel': 'Cancel the current operation ❌',
             'admin': 'Show admin info ℹ️',
             'broadcast': 'Broadcast message 📨',
-            'cancel': 'Cancel the current operation ❌'
             # 'export_users': 'Export users.csv 👥',
         },
         'ru': {
             'contract': 'Договор 📝',
-            'personal_data': 'Посмотреть мои данные 🗂',
+            'personal_data': 'Мои данные 🗂',
+            'cancel': 'Отменить текущее действие ❌',
             'admin': 'Показать информацию для админов ℹ️',
             'broadcast': 'Отправить сообщение 📨',
-            'cancel': 'Отмена ❌',
             # 'export_users': 'Экспорт users.csv 👥',
         }
     }
