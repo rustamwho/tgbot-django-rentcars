@@ -15,10 +15,14 @@ def get_keyboard_for_gender():
 
 
 def get_personal_data_edit_keyboard():
-    button = [[
-        InlineKeyboardButton('Отредактировать',
-                             callback_data=manage_data.MENU_EDIT_PD_MAIN)
-    ]]
+    button = [
+        [
+            InlineKeyboardButton('Редактировать 🛠',
+                                 callback_data=manage_data.MENU_EDIT_PD_MAIN),
+            InlineKeyboardButton('Закрыть ❌',
+                                 callback_data=manage_data.REMOVE_KEYBOARD)
+        ],
+    ]
 
     return InlineKeyboardMarkup(button)
 
@@ -26,19 +30,19 @@ def get_personal_data_edit_keyboard():
 def get_all_types_pd_keyboard():
     buttons = [
         [
-            InlineKeyboardButton('Личные данные',
+            InlineKeyboardButton('Личные данные 👤',
                                  callback_data=manage_data.MENU_EDIT_PD_PD),
-            InlineKeyboardButton('Контакты',
+            InlineKeyboardButton('Контакты 🗂',
                                  callback_data=manage_data.MENU_EDIT_CONTACTS)
         ],
         [
-            InlineKeyboardButton('Паспорт',
+            InlineKeyboardButton('Паспорт 📙',
                                  callback_data=manage_data.MENU_EDIT_PASSPORT),
-            InlineKeyboardButton('Близкий человек',
+            InlineKeyboardButton('Близкий человек 🫂',
                                  callback_data=manage_data.MENU_EDIT_CLOSE_PERSON)
         ],
         [
-            InlineKeyboardButton('Закрыть',
+            InlineKeyboardButton('Закрыть ❌',
                                  callback_data=manage_data.REMOVE_KEYBOARD)
         ]
     ]
@@ -48,23 +52,23 @@ def get_all_types_pd_keyboard():
 def get_pd_pd_keyboard():
     buttons = [
         [
-            InlineKeyboardButton('Фамилия',
+            InlineKeyboardButton('Фамилия 📝',
                                  callback_data=manage_data.EDIT_PD_LAST_NAME),
-            InlineKeyboardButton('Имя',
+            InlineKeyboardButton('Имя 📝',
                                  callback_data=manage_data.EDIT_PD_FIRST_NAME)
         ],
         [
             InlineKeyboardButton(
-                'Отчество', callback_data=manage_data.EDIT_PD_MIDDLE_NAME),
-            InlineKeyboardButton('Пол',
+                'Отчество 📝', callback_data=manage_data.EDIT_PD_MIDDLE_NAME),
+            InlineKeyboardButton('Пол 🙎‍♂️🙍‍♀️',
                                  callback_data=manage_data.EDIT_PD_GENDER)
         ],
         [
-            InlineKeyboardButton('Дата рождения',
+            InlineKeyboardButton('Дата рождения 🎂',
                                  callback_data=manage_data.EDIT_PD_BIRTHDAY)
         ],
         [
-            InlineKeyboardButton('Назад', callback_data=manage_data.BACK)
+            InlineKeyboardButton('Назад ⬅️', callback_data=manage_data.BACK)
         ]
     ]
     return InlineKeyboardMarkup(buttons)
@@ -74,25 +78,71 @@ def get_pd_contacts_keyboard():
     buttons = [
         [
             InlineKeyboardButton(
-                'Номер телефона',
+                'Номер телефона 📞',
                 callback_data=manage_data.EDIT_PD_PHONE_NUMBER),
-            InlineKeyboardButton('Почта',
+            InlineKeyboardButton('Почта 📧',
                                  callback_data=manage_data.EDIT_PD_EMAIL)
         ],
         [
             InlineKeyboardButton(
-                'Адрес прописки',
+                'Прописка 📬',
                 callback_data=manage_data.EDIT_PD_ADDRESS_REGISTRATION),
             InlineKeyboardButton(
-                'Адрес проживания',
+                'Место жительства 📬',
                 callback_data=manage_data.EDIT_PD_ADDRESS_RESIDENCE)
         ],
         [
-            InlineKeyboardButton('Назад', callback_data=manage_data.BACK)
+            InlineKeyboardButton('Назад ⬅️', callback_data=manage_data.BACK)
         ]
     ]
 
     return InlineKeyboardMarkup(buttons)
 
-# TODO: Keyboard для паспорта
-# TODO: Keyboard для близкого человека
+
+def get_pd_passport_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton(
+                'Серия *️⃣',
+                callback_data=manage_data.EDIT_PD_PASSPORT_SERIAL),
+            InlineKeyboardButton(
+                'Номер #️⃣',
+                callback_data=manage_data.EDIT_PD_PASSPORT_NUMBER)
+        ],
+        [
+            InlineKeyboardButton(
+                'Кем выдан 📑',
+                callback_data=manage_data.EDIT_PD_PASSPORT_ISSUED_BY),
+            InlineKeyboardButton(
+                'Когда выдан 📅',
+                callback_data=manage_data.EDIT_PD_PASSPORT_ISSUED_AT)
+        ],
+        [
+            InlineKeyboardButton('Назад ⬅️', callback_data=manage_data.BACK)
+        ]
+    ]
+
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_pd_close_person_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton(
+                'Имя 📝',
+                callback_data=manage_data.EDIT_PD_CLOSE_PERSON_NAME),
+            InlineKeyboardButton(
+                'Номер телефона 📞',
+                callback_data=manage_data.EDIT_PD_CLOSE_PERSON_PHONE)
+        ],
+        [
+            InlineKeyboardButton(
+                'Адрес 📬',
+                callback_data=manage_data.EDIT_PD_CLOSE_PERSON_ADDRESS)
+        ],
+        [
+            InlineKeyboardButton('Назад ⬅️', callback_data=manage_data.BACK)
+        ]
+    ]
+
+    return InlineKeyboardMarkup(buttons)
