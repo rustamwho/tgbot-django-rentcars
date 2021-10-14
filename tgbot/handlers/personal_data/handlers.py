@@ -1,11 +1,10 @@
 import datetime
-import io
 
 from django.forms.models import model_to_dict
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 
-from telegram import ParseMode, Update, ReplyKeyboardRemove
+from telegram import ParseMode, Update
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.ext import (MessageHandler, ConversationHandler, Filters,
                           CommandHandler, CallbackQueryHandler)
@@ -13,7 +12,6 @@ from telegram.ext import (MessageHandler, ConversationHandler, Filters,
 from general_utils.constants import GENDER_CHOICES
 
 from rentcars import validators
-from rentcars.models import PersonalData
 
 from tgbot.models import User
 from tgbot.handlers.personal_data import (static_text, keyboard_utils,
@@ -54,31 +52,46 @@ def get_my_personal_data_handler(update: Update,
 
 
 def main_menu_edit_pd_handler(update: Update, context: CallbackContext):
+    """Handler for MENU callbacks."""
     current_text = update.effective_message.text
     query = update.callback_query
     data = query.data
     if data in (manage_data.MENU_EDIT_PD_MAIN, manage_data.BACK):
         query.edit_message_text(
             text=current_text,
-            reply_markup=keyboard_utils.get_all_types_pd_keyboard()
+            reply_markup=keyboard_utils.get_all_types_pd_keyboard(),
+            parse_mode=ParseMode.HTML
         )
     elif data == manage_data.MENU_EDIT_PD_PD:
         query.edit_message_text(
             text=current_text,
-            reply_markup=keyboard_utils.get_pd_pd_keyboard()
+            reply_markup=keyboard_utils.get_pd_pd_keyboard(),
+            parse_mode=ParseMode.HTML
         )
     elif data == manage_data.MENU_EDIT_CONTACTS:
         query.edit_message_text(
             text=current_text,
-            reply_markup=keyboard_utils.get_pd_contacts_keyboard()
+            reply_markup=keyboard_utils.get_pd_contacts_keyboard(),
+            parse_mode=ParseMode.HTML
         )
-    # TODO: Редактирование паспорта
-    # TODO: Редактирование близкого человека
+    elif data == manage_data.MENU_EDIT_PASSPORT:
+        query.edit_message_text(
+            text=current_text,
+            reply_markup=keyboard_utils.get_pd_passport_keyboard(),
+            parse_mode=ParseMode.HTML
+        )
+    elif data == manage_data.MENU_EDIT_CLOSE_PERSON:
+        query.edit_message_text(
+            text=current_text,
+            reply_markup=keyboard_utils.get_pd_close_person_keyboard(),
+            parse_mode=ParseMode.HTML
+        )
     elif data == manage_data.REMOVE_KEYBOARD:
-        query.edit_message_text(text=current_text)
+        query.edit_message_text(text=current_text, parse_mode=ParseMode.HTML)
 
 
 def editing_pd_start_handler(update: Update, context: CallbackContext):
+    """Handling EDIT PERSONAL DATA commands."""
     current_text = update.effective_message.text
     query = update.callback_query
     data = query.data
@@ -132,7 +145,57 @@ def editing_pd_start_handler(update: Update, context: CallbackContext):
             parse_mode=ParseMode.HTML
         )
         return ADDRESS_RESIDENCE
-    # TODO: Паспортные данные и данные близкого чела
+    elif data == manage_data.EDIT_PD_PASSPORT_SERIAL:
+        query.edit_message_text(
+            text=static_text.ASK_PASSPORT_SERIAL,
+            parse_mode=ParseMode.HTML
+        )
+        return PASSPORT_SERIAL
+    elif data == manage_data.EDIT_PD_PASSPORT_NUMBER:
+        query.edit_message_text(
+            text=static_text.ASK_PASSPORT_NUMBER,
+            parse_mode=ParseMode.HTML
+        )
+        return PASSPORT_NUMBER
+    elif data == manage_data.EDIT_PD_PASSPORT_ISSUED_BY:
+        query.edit_message_text(
+            text=static_text.ASK_PASSPORT_ISSUED_BY,
+            parse_mode=ParseMode.HTML
+        )
+        return PASSPORT_ISSUED_BY
+    elif data == manage_data.EDIT_PD_PASSPORT_ISSUED_AT:
+        query.edit_message_text(
+            text=static_text.ASK_PASSPORT_DATE_OF_ISSUE,
+            parse_mode=ParseMode.HTML
+        )
+        return PASSPORT_ISSUED_AT
+    elif data == manage_data.EDIT_PD_CLOSE_PERSON_NAME:
+        query.edit_message_text(
+            text=static_text.ASK_CLOSE_PERSON_NAME,
+            parse_mode=ParseMode.HTML
+        )
+        return CLOSE_PERSON_NAME
+    elif data == manage_data.EDIT_PD_CLOSE_PERSON_PHONE:
+        u = User.get_user(update, context)
+        close_person_name = u.personal_data.close_person_name
+        query.edit_message_text(
+            text=static_text.ASK_CLOSE_PERSON_PHONE.format(
+                close_person_name=close_person_name
+            ),
+            parse_mode=ParseMode.HTML
+        )
+        return CLOSE_PERSON_PHONE
+    elif data == manage_data.EDIT_PD_CLOSE_PERSON_ADDRESS:
+        query.edit_message_text(
+            text=static_text.ASK_CLOSE_PERSON_ADDRESS,
+            parse_mode=ParseMode.HTML
+        )
+        return CLOSE_PERSON_ADDRESS
+
+
+"""
+Handlers for editing Personal Data
+"""
 
 
 def editing_last_name_handler(update: Update, context: CallbackContext):
@@ -195,6 +258,10 @@ def editing_middle_name_handler(update: Update,
 def editing_gender_handler(update: Update, context: CallbackContext) -> int:
     """Get and save gender of user."""
     gender = int(update.callback_query.data)
+    update.callback_query.edit_message_text(
+        text=f'Вы выбрали <b>ПОЛ</b> - {GENDER_CHOICES[gender][1]}',
+        parse_mode=ParseMode.HTML
+    )
 
     u = User.get_user(update, context)
     pd = u.personal_data
@@ -305,6 +372,145 @@ def editing_address_residence_handler(update: Update,
     return ConversationHandler.END
 
 
+def editing_passport_serial_handler(update: Update,
+                                    context: CallbackContext) -> int:
+    """Get and save passport serial."""
+    text = update.message.text
+
+    try:
+        validators.passport_serial_validator(text)
+    except ValidationError as e:
+        update.message.reply_text(e.message + '\n\nПовторите ввод.')
+        return PASSPORT_SERIAL
+    u = User.get_user(update, context)
+    pd = u.personal_data
+    pd.passport_serial = text
+    pd.save()
+    get_my_personal_data_handler(update, context)
+
+    return ConversationHandler.END
+
+
+def editing_passport_number_handler(update: Update,
+                                    context: CallbackContext) -> int:
+    """Get and save passport number."""
+    text = update.message.text
+
+    try:
+        validators.passport_number_validator(text)
+    except ValidationError as e:
+        update.message.reply_text(e.message + '\n\nПовторите ввод.')
+        return PASSPORT_NUMBER
+
+    u = User.get_user(update, context)
+    pd = u.personal_data
+    pd.passport_number = text
+    pd.save()
+    get_my_personal_data_handler(update, context)
+
+    return ConversationHandler.END
+
+
+def editing_passport_issued_by_handler(update: Update,
+                                       context: CallbackContext) -> int:
+    """Get and save the passport issued by whom."""
+    text = update.message.text
+
+    try:
+        validators.passport_issued_by_validator(text)
+    except ValidationError as e:
+        update.message.reply_text(e.message + '\n\nПовторите ввод.')
+        return PASSPORT_ISSUED_BY
+
+    u = User.get_user(update, context)
+    pd = u.personal_data
+    pd.passport_issued_by = text
+    pd.save()
+    get_my_personal_data_handler(update, context)
+
+    return ConversationHandler.END
+
+
+def editing_passport_issued_at_handler(update: Update,
+                                       context: CallbackContext) -> int:
+    """Get and save when a passport is issued."""
+    text = update.message.text
+
+    try:
+        validators.date_validate(text)
+    except ValidationError as e:
+        update.message.reply_text(e.message + '\n\nПовторите ввод.')
+        return PASSPORT_ISSUED_AT
+
+    u = User.get_user(update, context)
+    pd = u.personal_data
+    pd.passport_date_of_issue = text
+    pd.save()
+    get_my_personal_data_handler(update, context)
+
+    return ConversationHandler.END
+
+
+def editing_close_person_name_handler(update: Update,
+                                      context: CallbackContext) -> int:
+    """Receive and save close person name. E.G. 'Аделина (Жена).'"""
+    text = update.message.text
+
+    try:
+        validators.close_person_name_validator(text)
+    except ValidationError as e:
+        update.message.reply_text(e.message + '\n\nПовторите ввод.')
+        return CLOSE_PERSON_NAME
+
+    u = User.get_user(update, context)
+    pd = u.personal_data
+    pd.close_person_name = text
+    pd.save()
+    get_my_personal_data_handler(update, context)
+
+    return ConversationHandler.END
+
+
+def editing_close_person_phone_handler(update: Update,
+                                       context: CallbackContext) -> int:
+    """Receive and save close person phone."""
+    text = update.message.text
+
+    try:
+        validators.phone_number_validator(text)
+    except ValidationError as e:
+        update.message.reply_text(e.message + '\n\nПовторите ввод.')
+        return CLOSE_PERSON_PHONE
+
+    u = User.get_user(update, context)
+    pd = u.personal_data
+    pd.close_person_phone = text
+    pd.save()
+    get_my_personal_data_handler(update, context)
+
+    return ConversationHandler.END
+
+
+def editing_close_person_address_handler(update: Update,
+                                         context: CallbackContext) -> int:
+    """Address residence of close person different with address of user."""
+    text = update.message.text
+
+    try:
+        validators.address_validator(text)
+    except ValidationError as e:
+        update.message.reply_text(e.message + '\n\nПовторите ввод.')
+        return CLOSE_PERSON_ADDRESS
+
+    u = User.get_user(update, context)
+    pd = u.personal_data
+    pd.close_person_address = text
+    pd.save()
+    get_my_personal_data_handler(update, context)
+
+    return ConversationHandler.END
+
+
 def cancel_handler(update: Update, context: CallbackContext):
     """Отменить весь процесс диалога. Данные будут утеряны."""
     update.message.reply_text(
@@ -353,6 +559,34 @@ def get_pd_edit_conversation_handler():
             ADDRESS_RESIDENCE: [
                 MessageHandler(Filters.text & ~Filters.command,
                                editing_address_residence_handler)
+            ],
+            PASSPORT_SERIAL: [
+                MessageHandler(Filters.text & ~Filters.command,
+                               editing_passport_serial_handler)
+            ],
+            PASSPORT_NUMBER: [
+                MessageHandler(Filters.text & ~Filters.command,
+                               editing_passport_number_handler)
+            ],
+            PASSPORT_ISSUED_BY: [
+                MessageHandler(Filters.text & ~Filters.command,
+                               editing_passport_issued_by_handler)
+            ],
+            PASSPORT_ISSUED_AT: [
+                MessageHandler(Filters.text & ~Filters.command,
+                               editing_passport_issued_at_handler)
+            ],
+            CLOSE_PERSON_NAME: [
+                MessageHandler(Filters.text & ~Filters.command,
+                               editing_close_person_name_handler)
+            ],
+            CLOSE_PERSON_PHONE: [
+                MessageHandler(Filters.text & ~Filters.command,
+                               editing_close_person_phone_handler)
+            ],
+            CLOSE_PERSON_ADDRESS: [
+                MessageHandler(Filters.text & ~Filters.command,
+                               editing_close_person_address_handler)
             ]
         },
         fallbacks=[
