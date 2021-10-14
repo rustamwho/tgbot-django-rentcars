@@ -6,8 +6,10 @@ from tgbot.handlers.contract.manage_data import DOWNLOAD_CONTRACT
 
 def get_keyboard_for_gender():
     buttons = [[
-        InlineKeyboardButton(text=value, callback_data=key) for key, value in
-        GENDER_CHOICES
+        InlineKeyboardButton(text=GENDER_CHOICES[0][1] + '🤵‍♂️️',
+                             callback_data=GENDER_CHOICES[0][0]),
+        InlineKeyboardButton(text=GENDER_CHOICES[1][1] + '️👩️️️',
+                             callback_data=GENDER_CHOICES[1][0])
     ]]
 
     return InlineKeyboardMarkup(buttons)
