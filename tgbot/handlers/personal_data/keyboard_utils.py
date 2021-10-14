@@ -22,7 +22,7 @@ def get_personal_data_edit_keyboard():
         [
             InlineKeyboardButton('Редактировать 🛠',
                                  callback_data=manage_data.MENU_EDIT_PD_MAIN),
-            InlineKeyboardButton('Закрыть ❌',
+            InlineKeyboardButton('Закрыть ✅',
                                  callback_data=manage_data.REMOVE_KEYBOARD)
         ],
     ]
