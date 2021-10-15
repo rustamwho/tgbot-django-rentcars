@@ -6,7 +6,8 @@ from django.utils.timezone import now
 from telegram import ParseMode, Update
 from telegram.ext.callbackcontext import CallbackContext
 
-from tgbot.handlers.admin import static_text, utils
+from tgbot.handlers.admin import (static_text, utils, keyboard_utils,
+                                  manage_data)
 from tgbot.models import User
 
 
@@ -23,9 +24,31 @@ def admin_only_handler(func: Callable):
 
 
 @admin_only_handler
-def admin(update: Update, context) -> None:
+def admin_start(update: Update, context) -> None:
     """ Show help info about all secret admins commands """
-    update.message.reply_text(static_text.secret_admin_commands)
+    update.message.reply_text(
+        text=static_text.ADMIN_MENU_BASE,
+        reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
+    )
+
+
+@admin_only_handler
+def admin_menu_handler(update: Update, context) -> None:
+    query = update.callback_query
+    data = query.data
+
+    chat_id = update.effective_message.chat_id
+    current_text = update.effective_message.text
+
+    if data == manage_data.BASE_ADMIN_MENU:
+        query.edit_message_text(
+            text=current_text,
+            reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
+        )
+    elif data == manage_data.REMOVE_KEYBOARD:
+        query.edit_message_text(
+            text=current_text,
+        )
 
 
 @admin_only_handler
@@ -49,12 +72,28 @@ def export_users(update: Update, context) -> None:
     # in values argument you can specify which fields should be returned in output csv
     users = User.objects.all().values()
     csv_users = utils._get_csv_from_qs_values(users)
-    context.bot.send_document(chat_id=u.user_id, document=csv_users)
+    context.bot.send_document(chat_id=update.message.chat_id,
+                              document=csv_users)
 
 
 @admin_only_handler
-def get_all_users_handler(update: Update, context: CallbackContext) -> None:
-    text = utils.get_text_all_users()
-    update.message.reply_text(
-        text=text
-    )
+def admin_commands_handler(update: Update, context) -> None:
+    query = update.callback_query
+    data = query.data
+
+    chat_id = update.effective_message.chat_id
+    current_text = update.effective_message.text
+
+    if data == manage_data.GET_ALL_USERS:
+        text = utils.get_text_all_users()
+        update.effective_message.edit_text(
+            text=text,
+            reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
+        )
+    elif data == manage_data.GET_ARENDATORS:
+        text = utils.get_text_all_arendators()
+        update.effective_message.edit_text(
+            text=text,
+            reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
+        )
+
