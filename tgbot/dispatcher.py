@@ -23,10 +23,11 @@ from tgbot.handlers.broadcast_message import handlers as broadcast_handlers
 
 from tgbot.handlers.contract import handlers as contract_handlers
 from tgbot.handlers.personal_data import handlers as pd_handlers
-from tgbot.handlers.personal_data.manage_data import BASE_FOR_MENU
+from tgbot.handlers.personal_data.manage_data import BASE_FOR_PD_MENU
 
 from tgbot.handlers.onboarding.manage_data import SECRET_LEVEL_BUTTON
-from tgbot.handlers.broadcast_message.manage_data import CONFIRM_DECLINE_BROADCAST
+from tgbot.handlers.broadcast_message.manage_data import \
+    CONFIRM_DECLINE_BROADCAST
 from tgbot.handlers.broadcast_message.static_text import broadcast_command
 
 
@@ -40,26 +41,32 @@ def setup_dispatcher(dp):
     # admin commands
     dp.add_handler(CommandHandler("admin", admin_handlers.admin))
     dp.add_handler(CommandHandler("stats", admin_handlers.stats))
+    dp.add_handler(
+        CommandHandler('all_users', admin_handlers.get_all_users_handler))
     # dp.add_handler(CommandHandler('export_users', admin_handlers.export_users))
 
     # contract
     dp.add_handler(contract_handlers.get_conversation_handler_for_contract())
 
     # personal data
-    dp.add_handler(CommandHandler('personal_data',pd_handlers.get_my_personal_data_handler))
+    dp.add_handler(CommandHandler('personal_data',
+                                  pd_handlers.get_my_personal_data_handler))
     dp.add_handler(CallbackQueryHandler(pd_handlers.main_menu_edit_pd_handler,
-                                        pattern=f"^{BASE_FOR_MENU}"))
+                                        pattern=f"^{BASE_FOR_PD_MENU}"))
     dp.add_handler(pd_handlers.get_pd_edit_conversation_handler())
 
     # secret level
-    dp.add_handler(CallbackQueryHandler(onboarding_handlers.secret_level, pattern=f"^{SECRET_LEVEL_BUTTON}"))
+    dp.add_handler(CallbackQueryHandler(onboarding_handlers.secret_level,
+                                        pattern=f"^{SECRET_LEVEL_BUTTON}"))
 
     # broadcast message
     dp.add_handler(
-        MessageHandler(Filters.regex(rf'^{broadcast_command}(/s)?.*'), broadcast_handlers.broadcast_command_with_message)
+        MessageHandler(Filters.regex(rf'^{broadcast_command}(/s)?.*'),
+                       broadcast_handlers.broadcast_command_with_message)
     )
     dp.add_handler(
-        CallbackQueryHandler(broadcast_handlers.broadcast_decision_handler, pattern=f"^{CONFIRM_DECLINE_BROADCAST}")
+        CallbackQueryHandler(broadcast_handlers.broadcast_decision_handler,
+                             pattern=f"^{CONFIRM_DECLINE_BROADCAST}")
     )
 
     # files
@@ -149,7 +156,8 @@ def set_up_commands(bot_instance: Bot) -> None:
         bot_instance.set_my_commands(
             language_code=language_code,
             commands=[
-                BotCommand(command, description) for command, description in langs_with_commands[language_code].items()
+                BotCommand(command, description) for command, description in
+                langs_with_commands[language_code].items()
             ]
         )
 
@@ -159,4 +167,5 @@ def set_up_commands(bot_instance: Bot) -> None:
 set_up_commands(bot)
 
 n_workers = 0 if DEBUG else 4
-dispatcher = setup_dispatcher(Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True))
+dispatcher = setup_dispatcher(
+    Dispatcher(bot, update_queue=None, workers=n_workers, use_context=True))
