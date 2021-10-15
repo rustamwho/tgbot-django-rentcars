@@ -17,15 +17,17 @@ from dtb.celery import app  # event processing in async mode
 from dtb.settings import TELEGRAM_TOKEN, DEBUG
 
 from tgbot.handlers.utils import files, error
+
 from tgbot.handlers.admin import handlers as admin_handlers
 from tgbot.handlers.onboarding import handlers as onboarding_handlers
 from tgbot.handlers.broadcast_message import handlers as broadcast_handlers
-
 from tgbot.handlers.contract import handlers as contract_handlers
 from tgbot.handlers.personal_data import handlers as pd_handlers
-from tgbot.handlers.personal_data.manage_data import BASE_FOR_PD_MENU
 
+from tgbot.handlers.admin import manage_data as admin_manage_data
+from tgbot.handlers.personal_data.manage_data import BASE_FOR_PD_MENU
 from tgbot.handlers.onboarding.manage_data import SECRET_LEVEL_BUTTON
+
 from tgbot.handlers.broadcast_message.manage_data import \
     CONFIRM_DECLINE_BROADCAST
 from tgbot.handlers.broadcast_message.static_text import broadcast_command
@@ -39,10 +41,17 @@ def setup_dispatcher(dp):
     dp.add_handler(CommandHandler("start", onboarding_handlers.command_start))
 
     # admin commands
-    dp.add_handler(CommandHandler("admin", admin_handlers.admin))
+    dp.add_handler(CommandHandler("admin", admin_handlers.admin_start))
     dp.add_handler(CommandHandler("stats", admin_handlers.stats))
     dp.add_handler(
-        CommandHandler('all_users', admin_handlers.get_all_users_handler))
+        CallbackQueryHandler(admin_handlers.admin_menu_handler,
+                             pattern=f'^{admin_manage_data.BASE_ADMIN_MENU}')
+    )
+    dp.add_handler(
+        CallbackQueryHandler(
+            admin_handlers.admin_commands_handler,
+            pattern=f'^{admin_manage_data.BASE_ADMIN_COMMANDS}'))
+
     # dp.add_handler(CommandHandler('export_users', admin_handlers.export_users))
 
     # contract
