@@ -3,6 +3,7 @@ import csv
 
 from datetime import datetime
 from django.db.models import QuerySet
+from django.utils.timezone import now
 from typing import Dict
 
 from tgbot.models import User
@@ -72,5 +73,24 @@ def get_text_all_users():
     for u in users_without_username:
         text += f'{i}. Telegram ID - {u.user_id}'
         i += 1
+
+    return text
+
+
+def get_text_all_arendators():
+    """
+    Return text with arendators and the remaining days of the contract with
+    them.
+    """
+    arendators = User.objects.filter(contract__closed_at__gte=now().date())
+
+    text = 'Действующие договоры:\n'
+    for i, u in enumerate(arendators, 1):
+        name = (u.personal_data.last_name + ' ' +
+                u.personal_data.first_name[0] + '. ' +
+                u.personal_data.middle_name[0] + '.')
+        valid_contract = u.contract.order_by('closed_at').last()
+        days = (valid_contract.closed_at - now().date()).days
+        text += f'{i}. {name} (осталось {days} дней)\n'
 
     return text
