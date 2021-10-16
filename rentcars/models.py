@@ -136,7 +136,12 @@ class Contract(models.Model):
 
     file = models.FileField(
         verbose_name='Файл договора',
-        upload_to='contracts/'
+        upload_to='contracts/files/'
+    )
+
+    is_approved = models.BooleanField(
+        verbose_name='Подтвержден',
+        default=False
     )
 
     created_at = models.DateField(
@@ -148,8 +153,30 @@ class Contract(models.Model):
     )
 
     def __str__(self):
-        return self.user.username
+        return self.user.username if self.user.username else str(
+            self.user.user_id)
 
     class Meta:
         verbose_name = 'Договор'
         verbose_name_plural = 'Договоры'
+
+
+def contract_photos_path(instance, filename):
+    user_id = instance.contract.user.user_id
+    return 'contracts/photo_car/user_{0}/{1}'.format(user_id, filename)
+
+
+class PhotoCarContract(models.Model):
+    image = models.ImageField(
+        verbose_name='Фотографии машины',
+        upload_to=contract_photos_path,
+    )
+    contract = models.ForeignKey(
+        Contract,
+        on_delete=models.CASCADE,
+        related_name='car_photos'
+    )
+
+    class Meta:
+        verbose_name = 'Фотография машины во время заключения договора'
+        verbose_name_plural = 'Фотографии машины во время заключения договора'
