@@ -33,6 +33,22 @@ def get_keyboard_for_send_contract():
     return InlineKeyboardMarkup(buttons)
 
 
+def get_photo_cntrct_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text='Загрузить фотографии машины',
+                callback_data=manage_data.SEND_PHOTOS_CAR_CONTRACT)
+        ],
+        [
+            InlineKeyboardButton(text='Скачать договор',
+                                 callback_data=manage_data.DOWNLOAD_CONTRACT)
+        ]
+    ]
+
+    return InlineKeyboardMarkup(buttons)
+
+
 def get_pd_accept_decline_keyboard():
     buttons = [[
         InlineKeyboardButton(text='Верно ✅',
