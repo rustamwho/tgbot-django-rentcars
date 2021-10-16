@@ -84,7 +84,7 @@ def address_validator(value: str) -> None:
                 ', запятых и тире.'
     )
     reg_validator(value)
-    if not all(x in value for x in ('г.', 'ул.', 'д.')):
+    if not all(x in value for x in ('ул.', 'д.')):
         raise ValidationError('Требуется полный адрес. Например, Республика '
                               'Татарстан, г. Казань, ул. Баумана, д. 1')
 
