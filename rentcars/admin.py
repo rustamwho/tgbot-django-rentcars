@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from rentcars.models import PersonalData, Contract
+from rentcars.models import PersonalData, Contract, PhotoCarContract
+
+
+class PhotoCarContractInline(admin.TabularInline):
+    fk_name = 'contract'
+    model = PhotoCarContract
 
 
 @admin.register(PersonalData)
@@ -15,3 +20,4 @@ class PersonalDataAdmin(admin.ModelAdmin):
 @admin.register(Contract)
 class ContractAdmin(admin.ModelAdmin):
     list_display = ('user', 'file', 'created_at', 'closed_at')
+    inlines = [PhotoCarContractInline]
