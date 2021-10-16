@@ -1,5 +1,6 @@
 import datetime
 import io
+import os
 
 from pytils.translit import slugify
 
@@ -8,6 +9,7 @@ from telegram.ext.callbackcontext import CallbackContext
 from telegram.ext import (MessageHandler, ConversationHandler, Filters,
                           CommandHandler, CallbackQueryHandler)
 
+from django.core.files.temp import NamedTemporaryFile
 from django.core.files import File
 from django.forms.models import model_to_dict
 from django.core.exceptions import ValidationError
@@ -20,7 +22,7 @@ from tgbot.models import User
 from tgbot.handlers.contract import static_text, keyboard_utils, manage_data
 
 from rentcars.utils.contracts import create_contract
-from rentcars.models import PersonalData, Contract
+from rentcars.models import PersonalData, Contract, PhotoCarContract
 from rentcars import validators
 
 (LAST_NAME, FIRST_NAME, MIDDLE_NAME, GENDER, BIRTHDAY, EMAIL, PHONE_NUMBER,
@@ -33,6 +35,7 @@ from rentcars import validators
     'address_of_residence', 'close_person_name', 'close_person_phone',
     'close_person_address')
 ACCEPT = 'ACCEPT_PD'
+GETTING_PHOTO_CAR = 'GETTING_PHOTO_CAR'
 
 
 def start_contract(update: Update, context: CallbackContext) -> str:
@@ -45,6 +48,14 @@ def start_contract(update: Update, context: CallbackContext) -> str:
         valid_contracts = u.contract.filter(closed_at__gte=now().date())
         if valid_contracts.exists():
             valid_contract = valid_contracts.order_by('closed_at').last()
+
+            if not valid_contract.car_photos.all().exists():
+                update.message.reply_text(
+                    text='Вы не загрузили фотографии машины',
+                    reply_markup=keyboard_utils.get_photo_cntrct_keyboard()
+                )
+                return ConversationHandler.END
+
             days = (valid_contract.closed_at - now().date()).days
             update.message.reply_text(
                 text=f'До конца действия договора осталось {days} дней.',
@@ -101,6 +112,57 @@ def send_existing_contract_handler(update: Update,
     )
 
     return ConversationHandler.END
+
+
+def getting_photos_car_start_handler(update: Update,
+                                     context: CallbackContext) -> str:
+    update.effective_message.edit_text(
+        text='Отправьте фотки тачки'
+    )
+
+    return GETTING_PHOTO_CAR
+
+
+def getting_photos_car_handler(update: Update,
+                               context: CallbackContext) -> str:
+    u = User.get_user(update, context)
+
+    current_contract = u.contract.order_by('closed_at').last()
+
+    # Name photo
+    photos_count = current_contract.car_photos.count() + 1
+    user_name = u.username if u.username else u.user_id
+    photoname = f'{user_name}_{photos_count}.jpg'
+
+    # Temporary file for caching image before create a PhotoCarContract obj
+    img_temp = NamedTemporaryFile(delete=True)
+
+    file = update.message.photo[-1].get_file()
+    path = file.download(out=img_temp)
+
+    img_temp.flush()
+
+    # Create new PhotoCarContract and save downloaded image in it
+    new_photo = PhotoCarContract(contract=current_contract)
+    new_photo.save()
+    new_photo.image.save(photoname, File(img_temp))
+
+    update.message.reply_text(
+        text=f'Фотография {photos_count} сохранена.\n'
+             f'После отправки всех фотографий, введите "Готово"'
+    )
+
+
+def stop_getting_car_photos_handler(update: Update,
+                                    context: CallbackContext) -> str:
+    u = User.get_user(update, context)
+
+    current_contract = u.contract.order_by('closed_at').last()
+    photos_count = current_contract.car_photos.count()
+
+    update.message.reply_text(
+        text=f'Всего загружено {photos_count} фотографий.'
+    )
 
 
 def last_name_handler(update: Update, context: CallbackContext) -> str:
@@ -562,7 +624,9 @@ def accept_pd_handler(update: Update, context: CallbackContext) -> str:
 
     if data == manage_data.CORRECT:
         u = User.get_user(update, context)
-
+        query.edit_message_text(
+            query.message.text
+        )
         create_save_send_contract(u, context)
 
         return ConversationHandler.END
@@ -587,7 +651,10 @@ def get_conversation_handler_for_contract():
         entry_points=[
             CommandHandler('contract', start_contract),
             CallbackQueryHandler(send_existing_contract_handler,
-                                 pattern=f'^{manage_data.DOWNLOAD_CONTRACT}$')
+                                 pattern=f'^{manage_data.DOWNLOAD_CONTRACT}$'),
+            CallbackQueryHandler(
+                getting_photos_car_start_handler,
+                pattern=f'^{manage_data.SEND_PHOTOS_CAR_CONTRACT}$')
         ],
         states={
             LAST_NAME: [
@@ -663,6 +730,11 @@ def get_conversation_handler_for_contract():
             ACCEPT: [
                 CallbackQueryHandler(accept_pd_handler,
                                      pattern=f'^{manage_data.BASE_FOR_ACCEPT}')
+            ],
+            GETTING_PHOTO_CAR: [
+                MessageHandler(Filters.photo, getting_photos_car_handler),
+                MessageHandler(Filters.text(['Готово']),
+                               stop_getting_car_photos_handler)
             ]
         },
         fallbacks=[
