@@ -24,25 +24,42 @@ def get_keyboard_for_address_similar():
     return InlineKeyboardMarkup(buttons)
 
 
-def get_keyboard_for_send_contract():
-    buttons = [[
-        InlineKeyboardButton(text='Скачать договор',
-                             callback_data=manage_data.DOWNLOAD_CONTRACT)
-    ]]
-
-    return InlineKeyboardMarkup(buttons)
-
-
 def get_photo_cntrct_keyboard():
     buttons = [
         [
             InlineKeyboardButton(
-                text='Загрузить фотографии машины',
+                text='⬆️ Загрузить фотографии машины 📷',
                 callback_data=manage_data.SEND_PHOTOS_CAR_CONTRACT)
         ],
         [
-            InlineKeyboardButton(text='Скачать договор',
-                                 callback_data=manage_data.DOWNLOAD_CONTRACT)
+            InlineKeyboardButton(
+                text='⬇️ Скачать договор 📝',
+                callback_data=manage_data.DOWNLOAD_CONTRACT_FILE)
+        ],
+        [
+            InlineKeyboardButton('Закрыть ✅',
+                                 callback_data=manage_data.REMOVE_KEYBOARD)
+        ]
+    ]
+
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_contract_commands_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text='⬇️ Скачать фотографии машины 📷️',
+                callback_data=manage_data.DOWNLOAD_CONTRACT_PHOTOS)
+        ],
+        [
+            InlineKeyboardButton(
+                text='⬇️ Скачать договор 📝',
+                callback_data=manage_data.DOWNLOAD_CONTRACT_FILE)
+        ],
+        [
+            InlineKeyboardButton('Закрыть ✅',
+                                 callback_data=manage_data.REMOVE_KEYBOARD)
         ]
     ]
 
