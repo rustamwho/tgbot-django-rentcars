@@ -171,6 +171,11 @@ class PhotoCarContract(models.Model):
         verbose_name='Фотографии машины',
         upload_to=contract_photos_path,
     )
+    file_id = models.CharField(
+        verbose_name='ID фотографии на серверах Telegram',
+        max_length=250,
+        blank=True,
+    )
     contract = models.ForeignKey(
         Contract,
         on_delete=models.CASCADE,
