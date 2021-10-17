@@ -1,6 +1,5 @@
 import datetime
 import io
-import os
 
 from pytils.translit import slugify
 
@@ -49,9 +48,10 @@ def start_contract(update: Update, context: CallbackContext) -> str:
         if valid_contracts.exists():
             valid_contract = valid_contracts.order_by('closed_at').last()
 
+            # When photos of car in contract does not exists
             if not valid_contract.car_photos.all().exists():
                 update.message.reply_text(
-                    text='Вы не загрузили фотографии машины',
+                    text=static_text.CONTRACT_EXISTS_NO_PHOTO,
                     reply_markup=keyboard_utils.get_photo_cntrct_keyboard()
                 )
                 return ConversationHandler.END
@@ -59,7 +59,7 @@ def start_contract(update: Update, context: CallbackContext) -> str:
             days = (valid_contract.closed_at - now().date()).days
             update.message.reply_text(
                 text=f'До конца действия договора осталось {days} дней.',
-                reply_markup=keyboard_utils.get_keyboard_for_send_contract(),
+                reply_markup=keyboard_utils.get_contract_commands_keyboard(),
             )
             return ConversationHandler.END
 
@@ -92,32 +92,60 @@ def start_contract(update: Update, context: CallbackContext) -> str:
     return LAST_NAME
 
 
-def send_existing_contract_handler(update: Update,
-                                   context: CallbackContext) -> str:
+def contract_menu_handler(update: Update,
+                          context: CallbackContext) -> str:
+    query = update.callback_query
+    data = query.data
+
+    current_text = update.effective_message.text
+
+    if data == manage_data.REMOVE_KEYBOARD:
+        query.edit_message_text(text=current_text)
+
+    return ConversationHandler.END
+
+
+def download_existing_contract_handler(update: Update,
+                                       context: CallbackContext) -> str:
     """Send existing contract with current user"""
     u = User.get_user(update, context)
-    text = update.effective_message.text
+    current_text = update.effective_message.text
+    query = update.callback_query
+    data = query.data
 
-    update.effective_message.edit_text(text=text)
+    current_contract = u.contract.order_by('closed_at').last()
 
-    valid_contracts = u.contract.filter(closed_at__gte=now().date())
-    valid_contract = valid_contracts.order_by('closed_at').last()
-
-    context.bot.send_document(
-        chat_id=u.user_id,
-        document=valid_contract.file,
-        filename=(
-                u.personal_data.last_name + ' ' + u.personal_data.first_name +
-                ' ' + get_verbose_date(valid_contract.created_at) + '.docx')
-    )
+    if data == manage_data.DOWNLOAD_CONTRACT_FILE:
+        query.edit_message_text(
+            text=current_text + '\n\nСейчас отправлю договор.'
+        )
+        context.bot.send_document(
+            chat_id=u.user_id,
+            document=current_contract.file,
+            filename=current_contract.file.name
+        )
+    elif data == manage_data.DOWNLOAD_CONTRACT_PHOTOS:
+        contract_photos = current_contract.car_photos.all()
+        query.edit_message_text(
+            text=(current_text + f'\n\n'
+                                 f'Сейчас отправлю все {len(contract_photos)} фотографий.')
+        )
+        for photo in contract_photos:
+            file = photo.file_id if photo.file_id else photo.image
+            context.bot.send_photo(
+                chat_id=u.user_id,
+                photo=file,
+            )
 
     return ConversationHandler.END
 
 
 def getting_photos_car_start_handler(update: Update,
                                      context: CallbackContext) -> str:
+    """Handler for asking to send car photos."""
     update.effective_message.edit_text(
-        text='Отправьте фотки тачки'
+        text=static_text.ASK_CAR_PHOTOS,
+        parse_mode=ParseMode.HTML,
     )
 
     return GETTING_PHOTO_CAR
@@ -125,6 +153,7 @@ def getting_photos_car_start_handler(update: Update,
 
 def getting_photos_car_handler(update: Update,
                                context: CallbackContext) -> str:
+    """Handler for receiving photos and save them."""
     u = User.get_user(update, context)
 
     current_contract = u.contract.order_by('closed_at').last()
@@ -143,7 +172,10 @@ def getting_photos_car_handler(update: Update,
     img_temp.flush()
 
     # Create new PhotoCarContract and save downloaded image in it
-    new_photo = PhotoCarContract(contract=current_contract)
+    new_photo = PhotoCarContract(
+        contract=current_contract,
+        file_id=file.file_id
+    )
     new_photo.save()
     new_photo.image.save(photoname, File(img_temp))
 
@@ -152,17 +184,23 @@ def getting_photos_car_handler(update: Update,
              f'После отправки всех фотографий, введите "Готово"'
     )
 
+    return GETTING_PHOTO_CAR
+
 
 def stop_getting_car_photos_handler(update: Update,
                                     context: CallbackContext) -> str:
+    """When user send 'Готово'. Conversation will be closed."""
     u = User.get_user(update, context)
 
     current_contract = u.contract.order_by('closed_at').last()
     photos_count = current_contract.car_photos.count()
 
     update.message.reply_text(
-        text=f'Всего загружено {photos_count} фотографий.'
+        text=(f'Всего загружено {photos_count} фотографий.\n'
+              f'Все сохранено и не подлежит редактированию.')
     )
+
+    return ConversationHandler.END
 
 
 def last_name_handler(update: Update, context: CallbackContext) -> str:
@@ -546,12 +584,16 @@ def create_save_send_contract(u: User,
         text='Сейчас пришлю договор. Его надо будет распечатать и подписать.'
     )
 
+    """
+    Or else:
+    filename=(
+                u.personal_data.last_name + ' ' + u.personal_data.first_name +
+                ' ' + get_verbose_date(contr.created_at) + '.docx')
+    """
     context.bot.send_document(
         chat_id=u.user_id,
         document=contr.file,
-        filename=(
-                u.personal_data.last_name + ' ' + u.personal_data.first_name +
-                ' ' + get_verbose_date(contr.created_at) + '.docx')
+        filename=contr.file.name
     )
 
 
@@ -650,8 +692,12 @@ def get_conversation_handler_for_contract():
     conv_handler = ConversationHandler(
         entry_points=[
             CommandHandler('contract', start_contract),
-            CallbackQueryHandler(send_existing_contract_handler,
-                                 pattern=f'^{manage_data.DOWNLOAD_CONTRACT}$'),
+            CallbackQueryHandler(
+                contract_menu_handler,
+                pattern=f'^{manage_data.BASE_FOR_CONTRACT_MENU}'),
+            CallbackQueryHandler(
+                download_existing_contract_handler,
+                pattern=f'^{manage_data.BASE_FOR_DOWNLOAD_CONTRACT}'),
             CallbackQueryHandler(
                 getting_photos_car_start_handler,
                 pattern=f'^{manage_data.SEND_PHOTOS_CAR_CONTRACT}$')
