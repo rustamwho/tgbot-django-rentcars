@@ -1,5 +1,5 @@
 command_start = '/stats'
-only_for_admins = 'Sorry, this function is available only for admins. Set "admin" flag in django admin panel.'
+only_for_admins = 'Извините, это меню только для администраторов.'
 
 ADMIN_MENU_BASE = f'⚠️ Выберите нужное действие\n{command_start} - bot stats'
 
