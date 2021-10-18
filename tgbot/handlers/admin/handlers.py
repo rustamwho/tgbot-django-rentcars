@@ -6,9 +6,13 @@ from django.utils.timezone import now
 from telegram import ParseMode, Update
 from telegram.ext.callbackcontext import CallbackContext
 
+from general_utils.utils import get_verbose_date
+
 from tgbot.handlers.admin import (static_text, utils, keyboard_utils,
                                   manage_data)
 from tgbot.models import User
+
+from rentcars.models import Contract, PersonalData
 
 
 def admin_only_handler(func: Callable):
@@ -49,6 +53,8 @@ def admin_menu_handler(update: Update, context) -> None:
         query.edit_message_text(
             text=current_text,
         )
+    elif data == manage_data.DELETE_MESSAGE:
+        query.delete_message()
 
 
 @admin_only_handler
@@ -76,6 +82,37 @@ def export_users(update: Update, context) -> None:
                               document=csv_users)
 
 
+def send_unapproved_contracts(admin_id: int,
+                              context: CallbackContext) -> None:
+    """
+    Send to admin with receiving admin_id all unapproved contracts with
+    keyboard for approving.
+    """
+    unapproved_contracts = Contract.objects.filter(is_approved=False)
+    for unapproved_contract in unapproved_contracts:
+        keyboard = keyboard_utils.get_approve_contract_keyboard(
+            unapproved_contract.id
+        )
+        arendator_pd: PersonalData = unapproved_contract.user.personal_data
+        arendator_full_name = (f'{arendator_pd.last_name} '
+                               f'{arendator_pd.first_name} '
+                               f'{arendator_pd.last_name}')
+        created_at = get_verbose_date(unapproved_contract.created_at)
+        closed_at = get_verbose_date(unapproved_contract.closed_at)
+        text = static_text.TEXT_FOR_APPROVE_CONTRACT.format(
+            name_arendator=arendator_full_name,
+            created_at=created_at,
+            closed_at=closed_at,
+        )
+
+        context.bot.send_message(
+            chat_id=admin_id,
+            text=text,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML
+        )
+
+
 @admin_only_handler
 def admin_commands_handler(update: Update, context) -> None:
     query = update.callback_query
@@ -86,14 +123,26 @@ def admin_commands_handler(update: Update, context) -> None:
 
     if data == manage_data.GET_ALL_USERS:
         text = utils.get_text_all_users()
-        update.effective_message.edit_text(
+        query.edit_message_text(
             text=text,
             reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
         )
     elif data == manage_data.GET_ARENDATORS:
         text = utils.get_text_all_arendators()
-        update.effective_message.edit_text(
+        query.edit_message_text(
             text=text,
             reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
         )
-
+    elif data == manage_data.GET_UNAPPROVED_CONTRACTS:
+        query.edit_message_text(
+            text=static_text.NOW_SEND_UNAPPROVED_CONTRACTS
+        )
+        send_unapproved_contracts(chat_id, context)
+    elif data.startswith(manage_data.BASE_FOR_APPROVE_CONTRACT):
+        contract_id = int(data.split('_')[-1])
+        current_contract = Contract.objects.get(id=contract_id)
+        current_contract.is_approved = True
+        current_contract.save()
+        query.edit_message_text(
+            text=current_text + static_text.CONTRACT_IS_APPROVED
+        )
