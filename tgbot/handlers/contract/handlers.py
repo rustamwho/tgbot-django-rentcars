@@ -596,9 +596,9 @@ def create_save_send_contract(u: User,
         filename=contr.file.name
     )
 
-    moderators = User.objects.filter(is_moderator=True)
+    admins = User.objects.filter(is_admin=True)
 
-    if not moderators:
+    if not admins:
         return
 
     name_user = (f'{u.personal_data.last_name} {u.personal_data.first_name} '
@@ -609,13 +609,13 @@ def create_save_send_contract(u: User,
         f'Срок действия договора - до {contract_closed_at}.'
     )
     contr = u.contract.order_by('closed_at').last()
-    for moderator in moderators:
+    for admin in admins:
         context.bot.send_message(
-            chat_id=moderator.user_id,
+            chat_id=admin.user_id,
             text=text_for_moderators
         )
         context.bot.send_document(
-            chat_id=moderator.user_id,
+            chat_id=admin.user_id,
             document=contr.file,
             filename=contr.file.name
         )
