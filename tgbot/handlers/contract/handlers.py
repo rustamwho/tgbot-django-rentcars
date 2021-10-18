@@ -596,6 +596,30 @@ def create_save_send_contract(u: User,
         filename=contr.file.name
     )
 
+    moderators = User.objects.filter(is_moderator=True)
+
+    if not moderators:
+        return
+
+    name_user = (f'{u.personal_data.last_name} {u.personal_data.first_name} '
+                 f'{u.personal_data.middle_name}')
+    contract_closed_at = get_verbose_date(contr.closed_at)
+    text_for_moderators = (
+        f'Сформирован новый договор с {name_user}.\n'
+        f'Срок действия договора - до {contract_closed_at}.'
+    )
+    contr = u.contract.order_by('closed_at').last()
+    for moderator in moderators:
+        context.bot.send_message(
+            chat_id=moderator.user_id,
+            text=text_for_moderators
+        )
+        context.bot.send_document(
+            chat_id=moderator.user_id,
+            document=contr.file,
+            filename=contr.file.name
+        )
+
 
 def close_person_address_similar_handler(update: Update,
                                          context: CallbackContext) -> str:
