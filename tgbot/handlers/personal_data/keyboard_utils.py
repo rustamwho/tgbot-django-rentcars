@@ -5,6 +5,40 @@ from tgbot.handlers.personal_data import manage_data
 from general_utils.constants import GENDER_CHOICES
 
 
+def get_start_initialization_pd_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton(
+                'Заполнить данные 🛠',
+                callback_data=manage_data.START_INITIALIZATION_PD),
+            InlineKeyboardButton('Закрыть ✅',
+                                 callback_data=manage_data.REMOVE_KEYBOARD)
+        ],
+    ]
+
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_keyboard_for_address_similar():
+    buttons = [[
+        InlineKeyboardButton(text='Совпадает', callback_data='similar_addr'),
+        InlineKeyboardButton(text='Другой', callback_data='diff_addr'),
+    ]]
+
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_pd_accept_decline_keyboard():
+    buttons = [[
+        InlineKeyboardButton(text='Верно ✅',
+                             callback_data=manage_data.CORRECT),
+        InlineKeyboardButton(text='Ошибка ❌',
+                             callback_data=manage_data.WRONG)
+    ]]
+
+    return InlineKeyboardMarkup(buttons)
+
+
 def get_keyboard_for_gender():
     buttons = [[
         InlineKeyboardButton(text=GENDER_CHOICES[0][1] + '🤵‍♂️️',
@@ -18,7 +52,7 @@ def get_keyboard_for_gender():
 
 
 def get_personal_data_edit_keyboard():
-    button = [
+    buttons = [
         [
             InlineKeyboardButton('Редактировать 🛠',
                                  callback_data=manage_data.MENU_EDIT_PD_MAIN),
@@ -27,7 +61,7 @@ def get_personal_data_edit_keyboard():
         ],
     ]
 
-    return InlineKeyboardMarkup(button)
+    return InlineKeyboardMarkup(buttons)
 
 
 def get_all_types_pd_keyboard():
