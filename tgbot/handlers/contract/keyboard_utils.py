@@ -15,15 +15,6 @@ def get_keyboard_for_gender():
     return InlineKeyboardMarkup(buttons)
 
 
-def get_keyboard_for_address_similar():
-    buttons = [[
-        InlineKeyboardButton(text='Совпадает', callback_data='similar_addr'),
-        InlineKeyboardButton(text='Другой', callback_data='diff_addr'),
-    ]]
-
-    return InlineKeyboardMarkup(buttons)
-
-
 def get_photo_cntrct_keyboard():
     buttons = [
         [
@@ -68,7 +59,7 @@ def get_contract_commands_keyboard():
 
 def get_pd_accept_decline_keyboard():
     buttons = [[
-        InlineKeyboardButton(text='Верно ✅',
+        InlineKeyboardButton(text='Договор ✅',
                              callback_data=manage_data.CORRECT),
         InlineKeyboardButton(text='Ошибка ❌',
                              callback_data=manage_data.WRONG)
