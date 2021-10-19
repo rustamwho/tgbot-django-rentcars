@@ -22,7 +22,8 @@ from tgbot.handlers.admin import handlers as admin_handlers
 from tgbot.handlers.onboarding import handlers as onboarding_handlers
 from tgbot.handlers.broadcast_message import handlers as broadcast_handlers
 from tgbot.handlers.contract import handlers as contract_handlers
-from tgbot.handlers.personal_data import handlers as pd_handlers
+from tgbot.handlers.personal_data import handlers_edit_pd as pd_edit_handlers
+from tgbot.handlers.personal_data import handlers_init_pd as pd_init_handlers
 
 from tgbot.handlers.admin import manage_data as admin_manage_data
 from tgbot.handlers.personal_data.manage_data import BASE_FOR_PD_MENU
@@ -58,11 +59,14 @@ def setup_dispatcher(dp):
     dp.add_handler(contract_handlers.get_conversation_handler_for_contract())
 
     # personal data
-    dp.add_handler(CommandHandler('personal_data',
-                                  pd_handlers.get_my_personal_data_handler))
-    dp.add_handler(CallbackQueryHandler(pd_handlers.main_menu_edit_pd_handler,
-                                        pattern=f"^{BASE_FOR_PD_MENU}"))
-    dp.add_handler(pd_handlers.get_pd_edit_conversation_handler())
+    dp.add_handler(CommandHandler(
+        'personal_data',
+        pd_edit_handlers.get_my_personal_data_handler))
+    dp.add_handler(CallbackQueryHandler(
+        pd_edit_handlers.main_menu_edit_pd_handler,
+        pattern=f"^{BASE_FOR_PD_MENU}"))
+    dp.add_handler(pd_edit_handlers.get_pd_edit_conversation_handler())
+    dp.add_handler(pd_init_handlers.get_conversation_handler_for_init_pd())
 
     # secret level
     dp.add_handler(CallbackQueryHandler(onboarding_handlers.secret_level,
