@@ -13,7 +13,7 @@ def get_admin_main_menu_keyboard():
         ],
         [
             InlineKeyboardButton(
-                'Неподтвержденные договоры',
+                '❓Неподтвержденные договоры❓',
                 callback_data=manage_data.GET_UNAPPROVED_CONTRACTS)
         ],
         [
