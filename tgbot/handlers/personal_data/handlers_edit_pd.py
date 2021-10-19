@@ -29,7 +29,8 @@ def get_my_personal_data_handler(update: Update,
 
     if not hasattr(u, 'personal_data'):
         update.message.reply_text(
-            text=static_text.PERSONAL_DATA_NOT_EXISTS
+            text=static_text.PERSONAL_DATA_NOT_EXISTS,
+            reply_markup=keyboard_utils.get_start_initialization_pd_keyboard(),
         )
         return
 
@@ -141,7 +142,7 @@ def editing_pd_start_handler(update: Update, context: CallbackContext):
         return ADDRESS_REGISTRATION
     elif data == manage_data.EDIT_PD_ADDRESS_RESIDENCE:
         query.edit_message_text(
-            text=static_text.ASK_ADDRESS_RESIDENCE,
+            text=static_text.ASK_ADDRESS_RESIDENCE_SECOND,
             parse_mode=ParseMode.HTML
         )
         return ADDRESS_RESIDENCE
@@ -187,7 +188,7 @@ def editing_pd_start_handler(update: Update, context: CallbackContext):
         return CLOSE_PERSON_PHONE
     elif data == manage_data.EDIT_PD_CLOSE_PERSON_ADDRESS:
         query.edit_message_text(
-            text=static_text.ASK_CLOSE_PERSON_ADDRESS,
+            text=static_text.ASK_CLOSE_PERSON_ADDRESS_SECOND,
             parse_mode=ParseMode.HTML
         )
         return CLOSE_PERSON_ADDRESS
