@@ -134,15 +134,32 @@ def admin_commands_handler(update: Update, context) -> None:
             reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
         )
     elif data == manage_data.GET_UNAPPROVED_CONTRACTS:
-        query.edit_message_text(
-            text=static_text.NOW_SEND_UNAPPROVED_CONTRACTS
-        )
-        send_unapproved_contracts(chat_id, context)
+        unapproved = Contract.objects.filter(is_approved=False).exists()
+        # If unapproved contracts exists, send contracts for approve
+        # else edit message about
+        if unapproved:
+            query.edit_message_text(
+                text=static_text.NOW_SEND_UNAPPROVED_CONTRACTS
+            )
+            send_unapproved_contracts(chat_id, context)
+        else:
+            if current_text != static_text.UNAPPROVED_CONTACTS_NOT_EXISTS:
+                query.edit_message_text(
+                    text=static_text.UNAPPROVED_CONTACTS_NOT_EXISTS,
+                    reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
+                )
+            else:
+                query.edit_message_text(
+                    text=static_text.UNAPPROVED_CONTACTS_NOT_EXISTS2,
+                    reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
+                )
+    # Approving contract
     elif data.startswith(manage_data.BASE_FOR_APPROVE_CONTRACT):
         contract_id = int(data.split('_')[-1])
         current_contract = Contract.objects.get(id=contract_id)
         current_contract.is_approved = True
         current_contract.save()
+
         query.edit_message_text(
             text=current_text + static_text.CONTRACT_IS_APPROVED
         )
