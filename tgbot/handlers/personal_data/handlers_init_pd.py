@@ -472,6 +472,7 @@ def close_person_address_diff_handler(update: Update,
 
 
 def accept_pd_handler(update: Update, context: CallbackContext) -> str:
+    """After touch accept or decline buttons of pd."""
     query = update.callback_query
     data = query.data
 

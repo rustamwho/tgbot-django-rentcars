@@ -262,6 +262,7 @@ def create_save_send_contract(u: User,
 
 
 def accept_pd_handler(update: Update, context: CallbackContext) -> str:
+    """After touch accept or decline buttons of pd."""
     query = update.callback_query
     data = query.data
 
