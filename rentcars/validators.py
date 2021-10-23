@@ -99,3 +99,80 @@ def close_person_name_validator(value: str):
         message='Имя близкого человека должно быть написано в формате '
                 'ИМЯ (КЕМ ПРИХОДИТСЯ). Например, "Юля (Жена)".')
     reg_validator(value)
+
+
+"""
+Validators for Car
+"""
+
+
+def license_plate_validator(value: str):
+    """
+    License plate must must be in allowed formats. For more:
+    https://en.wikipedia.org/wiki/Vehicle_registration_plates_of_Russia
+    """
+    reg_validator = RegexValidator(
+        regex=r'^[АВЕКМНОРСТУХавекмнорстухABEKMHOPCTYXabekmhopcty]{1}'
+              r'\d{3}(?<!000)'
+              r'[АВЕКМНОРСТУХавекмнорстухABEKMHOPCTYXabekmhopcty]{2}\d{2,3}$'
+              r'|'
+              r'^[АВЕКМНОРСТУХавекмнорстухABEKMHOPCTYXabekmhopcty]{2}'
+              r'\d{3}(?<!000)'
+              r'\d{2,3}$',
+        message='Регистрационный знак автомобиля должен быть в одном из '
+                'следующих форматов:\n'
+                '- X999XX999 или X999XX99 для обычных машин\n'
+                '- XX999999 для такси\n\nПо ГОСТ номер может содержать '
+                'только буквы АВЕКМНОРСТУХ и цифры.'
+    )
+    reg_validator(value)
+
+
+def vin_validator(value: str):
+    """Validator for Vehicle identification number."""
+    reg_validator = RegexValidator(
+        regex=r'^[0-9ABCDEFGHJKLMNPRSTUVWXYZ]{17}$',
+        message='Идентификационный номер (VIN) автомобиля по ГОСТ состоит из '
+                '17 символов. Разрешаются английские буквы и цифры.'
+    )
+    reg_validator(value)
+
+
+def vehicle_category_validator(value: str):
+    """Validator for the category of vehicle"""
+    reg_validator = RegexValidator(
+        regex=r'^[ABCDabcd]{1}$',
+        message='Категория автомобиля обозначается одной английской буквой '
+                'ABCD.'
+    )
+    reg_validator(value)
+
+
+def vehicle_manufactured_year_validator(value: str):
+    """Validator for the year of manufacture of vehicle."""
+    now_year = datetime.date.today().year
+    if (not value.isdigit() or
+            len(value) != 4 or
+            not 1900 < int(value) <= now_year):
+        raise ValidationError('Год выпуска должен быть правильным.')
+
+
+def vehicle_passport_serial_validator(value: str):
+    """Validator for the serial of vehicle passport."""
+    reg_validator = RegexValidator(
+        regex=r'^[0-9]{2}[А-ЯA-Z]{2}',
+        message='Серия паспорта ТС должна быть в формате 00АА.'
+    )
+    reg_validator(value)
+
+
+def sts_serial_validator(value: str) -> None:
+    """The passport series consists of 4 digits."""
+    if not value.isdigit() or len(value) != 4:
+        raise ValidationError('Серия СТС должна состоять из 4 цифр.')
+
+
+def sts_number_validator(value: str) -> None:
+    """The passport number consists of 6 digits."""
+    if not value.isdigit() or len(value) != 6:
+        raise ValidationError('Номер СТС должен состоять из 6 цифр.')
