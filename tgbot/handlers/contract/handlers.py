@@ -7,6 +7,7 @@ from telegram import ParseMode, Update
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.ext import (MessageHandler, ConversationHandler, Filters,
                           CommandHandler, CallbackQueryHandler)
+from telegram import InputMediaPhoto
 
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files import File
@@ -127,12 +128,43 @@ def download_existing_contract_handler(update: Update,
                                  f'Сейчас отправлю все {len(contract_photos)} '
                                  f'фотографий.')
         )
-        for photo in contract_photos:
-            file = photo.file_id if photo.file_id else photo.image
-            context.bot.send_photo(
+
+        # Create list of InputMediaPhoto for sending images as album
+        media = [
+            InputMediaPhoto(photo.file_id) if photo.file_id
+            else InputMediaPhoto(photo.image)
+            for photo in contract_photos
+        ]
+
+        # Maximum 10 InputMediaPhoto in one message
+        if len(media) // 10 < 1:
+            # Send all <10 photos to user
+            context.bot.send_media_group(
                 chat_id=u.user_id,
-                photo=file,
+                media=media,
+                timeout=1000,
             )
+        else:
+            # Send all photos to User
+            # as multiple messages with albums of 10 images
+            current_media = []
+            while media:
+                if len(current_media) < 10:
+                    current_media.append(media.pop())
+                if len(current_media) == 10:
+                    context.bot.send_media_group(
+                        chat_id=u.user_id,
+                        media=current_media,
+                        timeout=1000,
+                    )
+                    current_media.clear()
+
+            if current_media:
+                context.bot.send_media_group(
+                    chat_id=u.user_id,
+                    media=current_media,
+                    timeout=1000,
+                )
 
     return ConversationHandler.END
 
