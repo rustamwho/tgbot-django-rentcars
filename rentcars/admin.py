@@ -1,6 +1,7 @@
 from django.contrib import admin
 
-from rentcars.models import PersonalData, Contract, PhotoCarContract
+from rentcars.models import (PersonalData, Contract, PhotoCarContract, Car,
+                             PhotoCar)
 
 
 class PhotoCarContractInline(admin.TabularInline):
@@ -21,3 +22,16 @@ class PersonalDataAdmin(admin.ModelAdmin):
 class ContractAdmin(admin.ModelAdmin):
     list_display = ('user', 'file', 'created_at', 'closed_at')
     inlines = [PhotoCarContractInline]
+
+
+class PhotoCarInline(admin.TabularInline):
+    fk_name = 'car'
+    model = PhotoCar
+
+
+@admin.register(Car)
+class CarAdmin(admin.ModelAdmin):
+    list_display = ('license_plate', 'vin', 'model', 'type', 'category',
+                    'year_manufacture', 'color', 'power', 'sts_serial',
+                    'sts_number')
+    inlines = [PhotoCarInline]
