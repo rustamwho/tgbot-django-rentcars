@@ -185,3 +185,102 @@ class PhotoCarContract(models.Model):
     class Meta:
         verbose_name = 'Фотография машины во время заключения договора'
         verbose_name_plural = 'Фотографии машины во время заключения договора'
+
+
+class Car(models.Model):
+    license_plate = models.CharField(
+        max_length=9,
+        validators=[cstm_validators.license_plate_validator],
+        verbose_name='Регистрационный знак',
+    )
+    vin = models.CharField(
+        max_length=17,
+        validators=[cstm_validators.vin_validator],
+        verbose_name='VIN',
+    )
+    model = models.CharField(
+        max_length=50,
+        verbose_name='Марка, модель',
+    )
+    type = models.CharField(
+        max_length=50,
+        verbose_name='Тип ТС',
+    )
+    category = models.CharField(
+        max_length=1,
+        validators=[cstm_validators.vehicle_category_validator],
+        verbose_name='Категория ТС',
+        help_text='Одна английская буква из ABCD',
+    )
+    year_manufacture = models.CharField(
+        max_length=4,
+        validators=[cstm_validators.vehicle_manufactured_year_validator],
+        verbose_name='Год выпуска',
+    )
+    color = models.CharField(
+        max_length=50,
+        verbose_name='Цвет ТС',
+    )
+    power = models.IntegerField(
+        verbose_name='Мощность двигателя, л.с.'
+    )
+    ecological_class = models.CharField(
+        max_length=20,
+        verbose_name='Экологический класс'
+    )
+    vehicle_passport_serial = models.CharField(
+        max_length=4,
+        validators=[cstm_validators.vehicle_passport_serial_validator],
+        verbose_name='Серия ПТС',
+    )
+    vehicle_passport_number = models.CharField(
+        max_length=6,
+        validators=[cstm_validators.passport_number_validator],
+        verbose_name='Номер ПТС'
+    )
+    max_mass = models.IntegerField(
+        verbose_name='Разрешенная max масса, кг'
+    )
+    sts_serial = models.CharField(
+        max_length=4,
+        validators=[cstm_validators.sts_serial_validator],
+        verbose_name='Серия свидетельства о регистрации ТС'
+    )
+    sts_number = models.CharField(
+        max_length=6,
+        validators=[cstm_validators.sts_number_validator],
+        verbose_name='Номер свидетельства о регистрации ТС'
+    )
+
+    class Meta:
+        verbose_name = 'Автомобиль'
+        verbose_name_plural = 'Автомобили'
+
+    def __str__(self):
+        return self.license_plate
+
+
+def car_photos_path(instance, filename):
+    car_license_plate = instance.car.license_plate
+    return f'cars/car_{car_license_plate}/{filename}'
+
+
+class PhotoCar(models.Model):
+    image = models.ImageField(
+        verbose_name='Фотографии машины',
+        upload_to=car_photos_path,
+    )
+    file_id = models.CharField(
+        verbose_name='ID фотографии на серверах Telegram',
+        max_length=250,
+        blank=True,
+    )
+    car = models.ForeignKey(
+        Car,
+        on_delete=models.CASCADE,
+        related_name='images'
+    )
+
+    class Meta:
+        verbose_name = 'Фотография машины'
+        verbose_name_plural = 'Фотографии машины'
