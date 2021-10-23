@@ -1,6 +1,7 @@
 import datetime
 
 from django.db import models
+from django.utils.timezone import now
 from django.core.validators import EmailValidator
 
 from general_utils.models import CreateUpdateTracker
@@ -127,66 +128,6 @@ class PersonalData(CreateUpdateTracker):
         return self.last_name
 
 
-class Contract(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.PROTECT,
-        related_name='contract'
-    )
-
-    file = models.FileField(
-        verbose_name='Файл договора',
-        upload_to='contracts/files/'
-    )
-
-    is_approved = models.BooleanField(
-        verbose_name='Подтвержден',
-        default=False
-    )
-
-    created_at = models.DateField(
-        auto_now_add=True,
-        verbose_name='Дата формирования договора'
-    )
-    closed_at = models.DateField(
-        verbose_name='Дата завершения действия договора'
-    )
-
-    def __str__(self):
-        return self.user.username if self.user.username else str(
-            self.user.user_id)
-
-    class Meta:
-        verbose_name = 'Договор'
-        verbose_name_plural = 'Договоры'
-
-
-def contract_photos_path(instance, filename):
-    user_id = instance.contract.user.user_id
-    return 'contracts/photo_car/user_{0}/{1}'.format(user_id, filename)
-
-
-class PhotoCarContract(models.Model):
-    image = models.ImageField(
-        verbose_name='Фотографии машины',
-        upload_to=contract_photos_path,
-    )
-    file_id = models.CharField(
-        verbose_name='ID фотографии на серверах Telegram',
-        max_length=250,
-        blank=True,
-    )
-    contract = models.ForeignKey(
-        Contract,
-        on_delete=models.CASCADE,
-        related_name='car_photos'
-    )
-
-    class Meta:
-        verbose_name = 'Фотография машины во время заключения договора'
-        verbose_name_plural = 'Фотографии машины во время заключения договора'
-
-
 class Car(models.Model):
     license_plate = models.CharField(
         max_length=9,
@@ -259,6 +200,12 @@ class Car(models.Model):
     def __str__(self):
         return self.license_plate
 
+    @property
+    def is_busy(self):
+        rented = Contract.objects.filter(closed_at__gte=now().date(),
+                                         car=self).exists()
+        return rented
+
 
 def car_photos_path(instance, filename):
     car_license_plate = instance.car.license_plate
@@ -284,3 +231,72 @@ class PhotoCar(models.Model):
     class Meta:
         verbose_name = 'Фотография машины'
         verbose_name_plural = 'Фотографии машины'
+
+
+class Contract(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='contract'
+    )
+
+    file = models.FileField(
+        verbose_name='Файл договора',
+        upload_to='contracts/files/'
+    )
+
+    is_approved = models.BooleanField(
+        verbose_name='Подтвержден',
+        default=False
+    )
+
+    car = models.ForeignKey(
+        Car,
+        on_delete=models.PROTECT,
+        related_name='car',
+        blank=True,
+        null=True,
+        verbose_name='Машина',
+    )
+
+    created_at = models.DateField(
+        auto_now_add=True,
+        verbose_name='Дата формирования договора'
+    )
+    closed_at = models.DateField(
+        verbose_name='Дата завершения действия договора'
+    )
+
+    def __str__(self):
+        return self.user.username if self.user.username else str(
+            self.user.user_id)
+
+    class Meta:
+        verbose_name = 'Договор'
+        verbose_name_plural = 'Договоры'
+
+
+def contract_photos_path(instance, filename):
+    user_id = instance.contract.user.user_id
+    return 'contracts/photo_car/user_{0}/{1}'.format(user_id, filename)
+
+
+class PhotoCarContract(models.Model):
+    image = models.ImageField(
+        verbose_name='Фотографии машины',
+        upload_to=contract_photos_path,
+    )
+    file_id = models.CharField(
+        verbose_name='ID фотографии на серверах Telegram',
+        max_length=250,
+        blank=True,
+    )
+    contract = models.ForeignKey(
+        Contract,
+        on_delete=models.CASCADE,
+        related_name='car_photos'
+    )
+
+    class Meta:
+        verbose_name = 'Фотография машины во время заключения договора'
+        verbose_name_plural = 'Фотографии машины во время заключения договора'
