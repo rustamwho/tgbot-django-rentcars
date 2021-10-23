@@ -33,5 +33,5 @@ class PhotoCarInline(admin.TabularInline):
 class CarAdmin(admin.ModelAdmin):
     list_display = ('license_plate', 'vin', 'model', 'type', 'category',
                     'year_manufacture', 'color', 'power', 'sts_serial',
-                    'sts_number')
+                    'sts_number', 'is_busy')
     inlines = [PhotoCarInline]
