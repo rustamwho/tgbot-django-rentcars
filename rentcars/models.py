@@ -9,6 +9,7 @@ from general_utils.constants import GENDER_CHOICES
 from tgbot.models import User
 
 import rentcars.validators as cstm_validators
+from rentcars.utils.paths import car_photos_path, contract_photos_path
 
 
 class PersonalData(CreateUpdateTracker):
@@ -207,11 +208,6 @@ class Car(models.Model):
         return rented
 
 
-def car_photos_path(instance, filename):
-    car_license_plate = instance.car.license_plate
-    return f'cars/car_{car_license_plate}/{filename}'
-
-
 class PhotoCar(models.Model):
     image = models.ImageField(
         verbose_name='Фотографии машины',
@@ -274,11 +270,6 @@ class Contract(models.Model):
     class Meta:
         verbose_name = 'Договор'
         verbose_name_plural = 'Договоры'
-
-
-def contract_photos_path(instance, filename):
-    user_id = instance.contract.user.user_id
-    return 'contracts/photo_car/user_{0}/{1}'.format(user_id, filename)
 
 
 class PhotoCarContract(models.Model):
