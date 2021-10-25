@@ -12,6 +12,10 @@ def get_admin_main_menu_keyboard():
                                  callback_data=manage_data.GET_ARENDATORS)
         ],
         [
+            InlineKeyboardButton('Таксопарк',
+                                 callback_data=manage_data.CARS_MENU)
+        ],
+        [
             InlineKeyboardButton(
                 '❓Неподтвержденные договоры❓',
                 callback_data=manage_data.GET_UNAPPROVED_CONTRACTS)
@@ -35,5 +39,23 @@ def get_approve_contract_keyboard(contract_id: int):
                              callback_data=manage_data.DELETE_MESSAGE)
 
     ]]
+
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_cars_menu_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton('Все машины',
+                                 callback_data=manage_data.GET_ALL_CARS)
+        ],
+        [
+            InlineKeyboardButton('Арендованные машины',
+                                 callback_data=manage_data.GET_RENTED_CARS)
+        ],
+        [
+            InlineKeyboardButton('Назад ⬅️', callback_data=manage_data.BACK)
+        ]
+    ]
 
     return InlineKeyboardMarkup(buttons)
