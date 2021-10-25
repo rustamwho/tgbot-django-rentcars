@@ -3,7 +3,7 @@ from typing import Callable
 
 from django.utils.timezone import now
 
-from telegram import ParseMode, Update
+from telegram import ParseMode, Update, error
 from telegram.ext.callbackcontext import CallbackContext
 
 from general_utils.utils import get_verbose_date
@@ -12,7 +12,7 @@ from tgbot.handlers.admin import (static_text, utils, keyboard_utils,
                                   manage_data)
 from tgbot.models import User
 
-from rentcars.models import Contract, PersonalData
+from rentcars.models import Contract, PersonalData, Car
 
 
 def admin_only_handler(func: Callable):
@@ -48,6 +48,22 @@ def admin_menu_handler(update: Update, context) -> None:
         query.edit_message_text(
             text=current_text,
             reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
+        )
+    elif data == manage_data.CARS_MENU:
+        all_cars_count = Car.objects.count()
+        # Very slow because cars count little
+        # (may update to search with contracts)
+        rented_cars_count = sum(1 for x in Car.objects.all() if x.is_busy)
+        query.edit_message_text(
+            text=static_text.COUNT_CARS.format(
+                all_cars_count=all_cars_count,
+                rented_cars_count=rented_cars_count),
+            parse_mode=ParseMode.HTML,
+            reply_markup=keyboard_utils.get_cars_menu_keyboard(),
+        )
+    elif data == manage_data.BACK:
+        query.edit_message_reply_markup(
+            keyboard_utils.get_admin_main_menu_keyboard()
         )
     elif data == manage_data.REMOVE_KEYBOARD:
         query.edit_message_text(
@@ -163,3 +179,36 @@ def admin_commands_handler(update: Update, context) -> None:
         query.edit_message_text(
             text=current_text + static_text.CONTRACT_IS_APPROVED
         )
+    elif data == manage_data.GET_ALL_CARS:
+        all_cars = Car.objects.all()
+        text = '<b>Все автомобили:</b>\n\n'
+        for i, car in enumerate(all_cars, 1):
+            text += f'<b>{i}</b>. {car.license_plate}\t{car.model}.\n'
+        if text == current_text:
+            text += '\nНичего не поменялось.'
+        try:
+            query.edit_message_text(
+                text=text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboard_utils.get_cars_menu_keyboard(),
+            )
+        except error.BadRequest:
+            return
+    elif data == manage_data.GET_RENTED_CARS:
+        all_rented_cars = [car for car in Car.objects.all() if car.is_busy]
+
+        if not all_rented_cars:
+            text = 'Арендованных машин нет'
+        else:
+            text = '<b>Арендованные автомобили:</b>\n\n'
+            for i, car in enumerate(all_rented_cars, 1):
+                text += f'<b>{i}.</b> {car.license_plate}\t{car.model}.\n'
+
+        try:
+            query.edit_message_text(
+                text=text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboard_utils.get_cars_menu_keyboard(),
+            )
+        except error.BadRequest:
+            return
