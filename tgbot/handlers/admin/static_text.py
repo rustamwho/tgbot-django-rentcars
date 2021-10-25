@@ -18,3 +18,6 @@ TEXT_FOR_APPROVE_CONTRACT = ('❗<b>Договор от {created_at}</b>❗ \n'
                              '<b>Арендатор:</b> {name_arendator}\n'
                              '<b>Действителен до:</b> {closed_at}')
 CONTRACT_IS_APPROVED = '\n\n✅ Подтвержден ✅'
+
+COUNT_CARS = ('Всего машин: <b>{all_cars_count}</b>\n'
+              'В аренде: <b>{rented_cars_count}</b>')
