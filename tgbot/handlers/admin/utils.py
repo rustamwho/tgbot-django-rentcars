@@ -8,6 +8,8 @@ from typing import Dict
 
 from tgbot.models import User
 
+from rentcars.models import Contract
+
 
 def _get_csv_from_qs_values(queryset: QuerySet[Dict], filename: str = 'users'):
     keys = queryset[0].keys()
@@ -89,8 +91,13 @@ def get_text_all_arendators():
         name = (u.personal_data.last_name + ' ' +
                 u.personal_data.first_name[0] + '. ' +
                 u.personal_data.middle_name[0] + '.')
-        valid_contract = u.contract.order_by('closed_at').last()
+        valid_contract: Contract = u.contract.order_by('closed_at').last()
         days = (valid_contract.closed_at - now().date()).days
-        text += f'{i}. {name} (осталось {days} дней)\n'
+        if valid_contract.car:
+            text += (f'{i}. {name} ({valid_contract.car.license_plate} - '
+                     f'осталось {days} дней)\n')
+        else:
+            text += (f'{i}. {name} (Машина не назначена - '
+                     f'осталось {days} дней)\n')
 
     return text
