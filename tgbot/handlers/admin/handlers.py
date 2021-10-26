@@ -153,6 +153,7 @@ def admin_commands_handler(update: Update, context) -> None:
         unapproved = Contract.objects.filter(is_approved=False).exists()
         # If unapproved contracts exists, send contracts for approve
         # else edit message about
+        # TODO: Для каждого контракта добавить возможность назначения тачки
         if unapproved:
             query.edit_message_text(
                 text=static_text.NOW_SEND_UNAPPROVED_CONTRACTS
