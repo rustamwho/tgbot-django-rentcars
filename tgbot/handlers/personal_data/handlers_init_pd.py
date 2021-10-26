@@ -477,12 +477,12 @@ def accept_pd_handler(update: Update, context: CallbackContext) -> str:
     data = query.data
 
     if data == manage_data.CORRECT:
-        u = User.get_user(update, context)
         query.edit_message_text(
             query.message.text
         )
 
         query.bot.send_message(
+            chat_id=query.message.chat_id,
             text=static_text.PERSONAL_DATA_FINISHED,
             parse_mode=ParseMode.HTML,
         )
