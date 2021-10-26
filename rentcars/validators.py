@@ -18,7 +18,7 @@ def phone_number_validator(value: str) -> None:
     if not value.startswith('+7') and not value.startswith('8'):
         raise ValidationError('Номер телефона должен начинаться с +7 или с 8.')
     reg_validator = RegexValidator(
-        regex=r'(\+7|8)\d{10}',
+        regex=r'^(\+7|8)\d{10}$',
         message='Номер телефона должен состоять из 11 цифр. '
                 'Например, +79999999999')
     reg_validator(value)
