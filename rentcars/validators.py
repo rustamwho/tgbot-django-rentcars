@@ -49,8 +49,8 @@ def birthday_date_validate(born: str) -> None:
     age = today.year - born.year - (
             (today.month, today.day) < (born.month, born.day))
 
-    if age < 18:
-        raise ValidationError('Арендатор должен быть совершеннолетним.')
+    if age < 21:
+        raise ValidationError('Арендатор должен быть старше 21 года.')
     if age > 80:
         raise ValidationError('Арендатор должен быть младше 80 лет.')
 
