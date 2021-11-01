@@ -6,6 +6,7 @@ from django.core.validators import EmailValidator
 
 from general_utils.models import CreateUpdateTracker
 from general_utils.constants import GENDER_CHOICES
+from general_utils.utils import get_verbose_date
 from tgbot.models import User
 
 import rentcars.validators as cstm_validators
@@ -264,8 +265,7 @@ class Contract(models.Model):
     )
 
     def __str__(self):
-        return self.user.username if self.user.username else str(
-            self.user.user_id)
+        return f'№{self.id} от {get_verbose_date(self.created_at)}'
 
     class Meta:
         verbose_name = 'Договор'
@@ -291,3 +291,51 @@ class PhotoCarContract(models.Model):
     class Meta:
         verbose_name = 'Фотография машины во время заключения договора'
         verbose_name_plural = 'Фотографии машины во время заключения договора'
+
+
+class Fine(models.Model):
+    car = models.ForeignKey(
+        Car,
+        on_delete=models.CASCADE,
+        related_name='fines',
+        verbose_name='Машина',
+    )
+    date = models.DateField(
+        verbose_name='Дата штрафа',
+    )
+    amount = models.PositiveIntegerField(
+        verbose_name='Сумма штрафа',
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        blank=True,
+        verbose_name='Водитель',
+        help_text='Заполнится автоматически после сохранения!',
+    )
+    contract = models.ForeignKey(
+        Contract,
+        on_delete=models.CASCADE,
+        blank=True,
+        verbose_name='Договор',
+        help_text='Заполнится автоматически после сохранения!',
+    )
+
+    class Meta:
+        verbose_name = 'Штраф'
+        verbose_name_plural = 'Штрафы'
+
+    def __str__(self):
+        return f'{self.amount} - {self.car} - {self.date}'
+
+    def save(self, *args, **kwargs):
+        if isinstance(self.date, str):
+            self.date = datetime.datetime.strptime(self.date, '%d.%m.%Y')
+
+        self.contract = Contract.objects.get(
+            created_at__lte=self.date,
+            closed_at__gte=self.date,
+            car=self.car,
+        )
+        self.user = self.contract.user
+        super().save(*args, *kwargs)
