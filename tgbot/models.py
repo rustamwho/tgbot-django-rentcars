@@ -26,7 +26,12 @@ class User(CreateUpdateTracker):
     is_moderator = models.BooleanField(default=False)
     
     def __str__(self):
-        return f'@{self.username}' if self.username is not None else f'{self.user_id}'
+        user = (f'@{self.username}' if self.username is not None
+                else f'{self.user_id}')
+        if hasattr(self, 'personal_data'):
+            user = (f'{self.personal_data.last_name} '
+                    f'{self.personal_data.first_name}')
+        return user
 
     @classmethod
     def get_user_and_created(cls, update: Update, context) -> Tuple[User, bool]:
