@@ -61,6 +61,28 @@ def admin_menu_handler(update: Update, context) -> None:
             parse_mode=ParseMode.HTML,
             reply_markup=keyboard_utils.get_cars_menu_keyboard(),
         )
+    # Menu with free cars for setting car to current contract
+    elif data.startswith(manage_data.SET_CAR_TO_CONTRACT_MENU):
+        contract_id = int(data.split('_')[-1])
+
+        Contract.objects.filter(id=contract_id).update(car=None)
+        if 'Назначена машина' in current_text:
+            current_text = (current_text.split('\n\n')[0] +
+                            '\n\n❗Машина не назначена')
+
+        free_cars = [car for car in Car.objects.all() if car.is_busy is False]
+        if not free_cars:
+            query.edit_message_text(
+                text=current_text + '\n\n✖️Нет свободных машин✖️'
+            )
+            return
+
+        query.edit_message_text(
+            text=current_text,
+            reply_markup=keyboard_utils.get_set_car_to_contract_keyboard(
+                contract_id, free_cars
+            )
+        )
     elif data == manage_data.BACK:
         query.edit_message_reply_markup(
             keyboard_utils.get_admin_main_menu_keyboard()
@@ -106,8 +128,9 @@ def send_unapproved_contracts(admin_id: int,
     """
     unapproved_contracts = Contract.objects.filter(is_approved=False)
     for unapproved_contract in unapproved_contracts:
+        is_car_exists = unapproved_contract.car is not None
         keyboard = keyboard_utils.get_approve_contract_keyboard(
-            unapproved_contract.id
+            unapproved_contract.id, is_car_exists
         )
         arendator_pd: PersonalData = unapproved_contract.user.personal_data
         arendator_full_name = (f'{arendator_pd.last_name} '
@@ -120,7 +143,11 @@ def send_unapproved_contracts(admin_id: int,
             created_at=created_at,
             closed_at=closed_at,
         )
-
+        if is_car_exists:
+            text += (f'\n\nНазначена машина: '
+                     f'{unapproved_contract.car.license_plate}')
+        else:
+            text += '\n\n❗Машина не назначена'
         context.bot.send_message(
             chat_id=admin_id,
             text=text,
@@ -153,7 +180,6 @@ def admin_commands_handler(update: Update, context) -> None:
         unapproved = Contract.objects.filter(is_approved=False).exists()
         # If unapproved contracts exists, send contracts for approve
         # else edit message about
-        # TODO: Для каждого контракта добавить возможность назначения тачки
         if unapproved:
             query.edit_message_text(
                 text=static_text.NOW_SEND_UNAPPROVED_CONTRACTS
@@ -179,6 +205,21 @@ def admin_commands_handler(update: Update, context) -> None:
 
         query.edit_message_text(
             text=current_text + static_text.CONTRACT_IS_APPROVED
+        )
+    # Set car to contract
+    elif data.startswith(manage_data.BASE_FOR_SET_CAR_TO_CONTRACT):
+        contract_id, car_id = (int(x) for x in data.split('_')[-2:])
+        current_contract = Contract.objects.get(id=contract_id)
+        current_car = Car.objects.get(id=car_id)
+        current_contract.car = current_car
+        current_contract.save()
+
+        current_text = current_text.replace('\n\n❗Машина не назначена', '')
+        query.edit_message_text(
+            text=(current_text +
+                  f'\n\nНазначена машина: {current_car.license_plate}'),
+            reply_markup=keyboard_utils.get_approve_contract_keyboard(
+                contract_id=contract_id)
         )
     elif data == manage_data.GET_ALL_CARS:
         all_cars = Car.objects.all()
