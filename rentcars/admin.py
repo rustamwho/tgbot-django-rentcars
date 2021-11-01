@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from rentcars.models import (PersonalData, Contract, PhotoCarContract, Car,
-                             PhotoCar)
+                             PhotoCar, Fine)
 
 
 class PhotoCarContractInline(admin.TabularInline):
@@ -35,3 +35,8 @@ class CarAdmin(admin.ModelAdmin):
                     'year_manufacture', 'color', 'power', 'sts_serial',
                     'sts_number', 'is_busy')
     inlines = [PhotoCarInline]
+
+
+@admin.register(Fine)
+class FineAdmin(admin.ModelAdmin):
+    list_display = ('car', 'date', 'amount', 'user', 'contract')
