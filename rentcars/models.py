@@ -204,9 +204,11 @@ class Car(models.Model):
 
     @property
     def is_busy(self):
-        rented = Contract.objects.filter(closed_at__gte=now().date(),
-                                         car=self).exists()
-        return rented
+        return self.contracts.filter(closed_at__gte=now().date()).exists()
+
+    @classmethod
+    def get_busy_cars(cls):
+        return cls.objects.filter(contracts__closed_at__gte=now().date())
 
 
 class PhotoCar(models.Model):
@@ -234,7 +236,7 @@ class Contract(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
-        related_name='contract'
+        related_name='contracts'
     )
 
     file = models.FileField(
@@ -250,7 +252,7 @@ class Contract(models.Model):
     car = models.ForeignKey(
         Car,
         on_delete=models.PROTECT,
-        related_name='car',
+        related_name='contracts',
         blank=True,
         null=True,
         verbose_name='Машина',
@@ -260,12 +262,21 @@ class Contract(models.Model):
         auto_now_add=True,
         verbose_name='Дата формирования договора'
     )
+    approved_at = models.DateField(
+        verbose_name='Дата подтверждения договора',
+        blank=True,
+        null=True,
+    )
     closed_at = models.DateField(
         verbose_name='Дата завершения действия договора'
     )
 
     def __str__(self):
         return f'№{self.id} от {get_verbose_date(self.created_at)}'
+
+    @property
+    def is_active(self):
+        return self.closed_at >= now().date()
 
     class Meta:
         verbose_name = 'Договор'
@@ -309,16 +320,24 @@ class Fine(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
+        related_name='fines',
         blank=True,
+        null=True,
         verbose_name='Водитель',
         help_text='Заполнится автоматически после сохранения!',
     )
     contract = models.ForeignKey(
         Contract,
         on_delete=models.CASCADE,
+        related_name='fines',
         blank=True,
+        null=True,
         verbose_name='Договор',
         help_text='Заполнится автоматически после сохранения!',
+    )
+    is_paid = models.BooleanField(
+        verbose_name='Штраф оплачен',
+        default=False,
     )
 
     class Meta:
@@ -331,11 +350,13 @@ class Fine(models.Model):
     def save(self, *args, **kwargs):
         if isinstance(self.date, str):
             self.date = datetime.datetime.strptime(self.date, '%d.%m.%Y')
-
-        self.contract = Contract.objects.get(
-            created_at__lte=self.date,
-            closed_at__gte=self.date,
-            car=self.car,
-        )
-        self.user = self.contract.user
+        if Contract.objects.filter(approved_at__lte=self.date,
+                                   closed_at__gte=self.date,
+                                   car=self.car).exists():
+            self.contract = Contract.objects.get(
+                approved_at__lte=self.date,
+                closed_at__gte=self.date,
+                car=self.car,
+            )
+            self.user = self.contract.user
         super().save(*args, *kwargs)
