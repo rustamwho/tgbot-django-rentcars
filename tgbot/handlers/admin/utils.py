@@ -8,7 +8,9 @@ from typing import Dict
 
 from tgbot.models import User
 
-from rentcars.models import Contract
+from rentcars.models import Contract, Fine, PersonalData
+
+from general_utils.utils import get_verbose_date
 
 
 def _get_csv_from_qs_values(queryset: QuerySet[Dict], filename: str = 'users'):
@@ -99,5 +101,70 @@ def get_text_all_arendators():
         else:
             text += (f'{i}. {name} (Машина не назначена - '
                      f'осталось {days} дней)\n')
+
+    return text
+
+
+def get_text_all_fines():
+    """Return text for all fines with license plate of car, date and user."""
+    if not Fine.objects.exists():
+        return 'Штрафов нет'
+    text = 'Все штрафы:\n'
+    for i, fine in enumerate(Fine.objects.all().order_by('-date'), 1):
+        if fine.user:
+            pd: PersonalData = fine.user.personal_data
+            row = (f'{fine.car.license_plate[:-3]} - {fine.amount} руб. '
+                   f'{get_verbose_date(fine.date)} - '
+                   f'{pd.last_name} {pd.first_name[0]}.'
+                   f'{pd.middle_name[0]}.\n')
+            text += f'{i}. {row}'
+        else:
+            text += (
+                f'{i}. {fine.car.license_plate[:-3]} - {fine.amount} руб. '
+                f'{get_verbose_date(fine.date)}\n')
+
+    return text
+
+
+def get_text_paid_fines():
+    """Return text for paid fines with license plate of car, date and user."""
+    paid_fines = Fine.objects.filter(is_paid=True).order_by('-date')
+    if not paid_fines.exists():
+        return 'Оплаченных штрафов нет'
+    text = 'Оплаченные штрафы:\n'
+    for i, fine in enumerate(paid_fines, 1):
+        if fine.user:
+            pd: PersonalData = fine.user.personal_data
+            row = (f'{fine.car.license_plate[:-3]} - {fine.amount} руб. '
+                   f'{get_verbose_date(fine.date)} - '
+                   f'{pd.last_name} {pd.first_name[0]}.'
+                   f'{pd.middle_name[0]}.\n')
+            text += f'{i}. {row}'
+        else:
+            text += (
+                f'{i}. {fine.car.license_plate[:-3]} - {fine.amount} руб. '
+                f'{get_verbose_date(fine.date)}\n')
+
+    return text
+
+
+def get_text_unpaid_fines():
+    """Return text for unpaid fines with license plate of car, date, user."""
+    unpaid_fines = Fine.objects.filter(is_paid=False).order_by('-date')
+    if not unpaid_fines.exists():
+        return 'Неоплаченных штрафов нет'
+    text = 'Неоплаченные штрафы:\n'
+    for i, fine in enumerate(unpaid_fines, 1):
+        if fine.user:
+            pd: PersonalData = fine.user.personal_data
+            row = (f'{fine.car.license_plate[:-3]} - {fine.amount} руб. '
+                   f'{get_verbose_date(fine.date)} - '
+                   f'{pd.last_name} {pd.first_name[0]}.'
+                   f'{pd.middle_name[0]}.\n')
+            text += f'{i}. {row}'
+        else:
+            text += (
+                f'{i}. {fine.car.license_plate[:-3]} - {fine.amount} руб. '
+                f'{get_verbose_date(fine.date)}\n')
 
     return text
