@@ -21,3 +21,6 @@ CONTRACT_IS_APPROVED = '\n\n✅ Подтвержден ✅'
 
 COUNT_CARS = ('Всего машин: <b>{all_cars_count}</b>\n'
               'В аренде: <b>{rented_cars_count}</b>')
+
+COUNT_FINES = ('Всего штрафов:\t{all_fines_count}\n'
+               'Не оплачено:\t{unpaid_fines_count}')
