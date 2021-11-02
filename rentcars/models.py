@@ -6,7 +6,7 @@ from django.core.validators import EmailValidator
 
 from general_utils.models import CreateUpdateTracker
 from general_utils.constants import GENDER_CHOICES
-from general_utils.utils import get_verbose_date
+from general_utils.utils import get_verbose_date, transliterate_license_plate
 from tgbot.models import User
 
 import rentcars.validators as cstm_validators
@@ -124,6 +124,10 @@ class PersonalData(CreateUpdateTracker):
             self.passport_date_of_issue = datetime.datetime.strptime(
                 self.passport_date_of_issue, '%d.%m.%Y'
             )
+        self.last_name = self.last_name.capitalize()
+        self.first_name = self.first_name.capitalize()
+        self.middle_name = self.middle_name.capitalize()
+        self.close_person_name = self.close_person_name.title()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -195,9 +199,14 @@ class Car(models.Model):
         verbose_name='Номер свидетельства о регистрации ТС'
     )
 
+    def save(self, *args, **kwargs):
+        self.license_plate = transliterate_license_plate(self.license_plate)
+        super().save(*args, **kwargs)
+
     class Meta:
         verbose_name = 'Автомобиль'
         verbose_name_plural = 'Автомобили'
+        ordering = ['license_plate']
 
     def __str__(self):
         return self.license_plate
@@ -343,6 +352,7 @@ class Fine(models.Model):
     class Meta:
         verbose_name = 'Штраф'
         verbose_name_plural = 'Штрафы'
+        ordering = ['is_paid', '-date']
 
     def __str__(self):
         return f'{self.amount} - {self.car} - {self.date}'
@@ -350,13 +360,15 @@ class Fine(models.Model):
     def save(self, *args, **kwargs):
         if isinstance(self.date, str):
             self.date = datetime.datetime.strptime(self.date, '%d.%m.%Y')
-        if Contract.objects.filter(approved_at__lte=self.date,
-                                   closed_at__gte=self.date,
-                                   car=self.car).exists():
-            self.contract = Contract.objects.get(
-                approved_at__lte=self.date,
-                closed_at__gte=self.date,
-                car=self.car,
-            )
-            self.user = self.contract.user
+        if not self.contract:
+            valid_contr = Contract.objects.filter(approved_at__lte=self.date,
+                                                  closed_at__gte=self.date,
+                                                  car=self.car)
+            if valid_contr.exists():
+                self.contract = Contract.objects.get(
+                    approved_at__lte=self.date,
+                    closed_at__gte=self.date,
+                    car=self.car,
+                )
+                self.user = self.contract.user
         super().save(*args, *kwargs)
