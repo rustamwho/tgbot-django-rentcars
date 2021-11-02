@@ -4,6 +4,7 @@ from typing import Union, Optional, Tuple, Dict
 
 from django.db import models
 from django.db.models import QuerySet
+from django.utils.timezone import now
 from telegram import Update
 
 from dtb.settings import DEBUG
@@ -71,3 +72,8 @@ class User(CreateUpdateTracker):
         if self.username:
             return f'@{self.username}'
         return f"{self.first_name} {self.last_name}" if self.last_name else f"{self.first_name}"
+
+    def get_active_contract(self):
+        if self.contracts.filter(closed_at__gte=now().date()).exists():
+            return self.contracts.get(closed_at__gte=now().date())
+        return None
