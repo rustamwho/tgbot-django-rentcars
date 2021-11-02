@@ -20,8 +20,13 @@ class PersonalDataAdmin(admin.ModelAdmin):
 
 @admin.register(Contract)
 class ContractAdmin(admin.ModelAdmin):
-    list_display = ('user', 'file', 'created_at', 'closed_at')
+    list_display = ('is_active', 'user', 'file', 'car', 'created_at',
+                    'approved_at', 'closed_at')
     inlines = [PhotoCarContractInline]
+
+    def is_active(self, obj):
+        return obj.is_active
+    is_active.boolean = True
 
 
 class PhotoCarInline(admin.TabularInline):
@@ -39,4 +44,4 @@ class CarAdmin(admin.ModelAdmin):
 
 @admin.register(Fine)
 class FineAdmin(admin.ModelAdmin):
-    list_display = ('car', 'date', 'amount', 'user', 'contract')
+    list_display = ('car', 'date', 'amount', 'is_paid', 'user', 'contract')
