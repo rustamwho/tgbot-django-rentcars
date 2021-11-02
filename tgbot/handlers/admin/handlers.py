@@ -12,7 +12,7 @@ from tgbot.handlers.admin import (static_text, utils, keyboard_utils,
                                   manage_data)
 from tgbot.models import User
 
-from rentcars.models import Contract, PersonalData, Car
+from rentcars.models import Contract, PersonalData, Car, Fine
 
 
 def admin_only_handler(func: Callable):
@@ -82,6 +82,28 @@ def admin_menu_handler(update: Update, context) -> None:
             reply_markup=keyboard_utils.get_set_car_to_contract_keyboard(
                 contract_id, free_cars
             )
+        )
+    elif data == manage_data.FINES_MENU:
+        all_fines_count = Fine.objects.count()
+        unpaid_fines_count = Fine.objects.filter(is_paid=False).count()
+        query.edit_message_text(
+            text=static_text.COUNT_FINES.format(
+                all_fines_count=all_fines_count,
+                unpaid_fines_count=unpaid_fines_count),
+            reply_markup=keyboard_utils.get_fines_menu_keyboard()
+        )
+    elif data == manage_data.ADD_NEW_FINE_MENU:
+        all_cars = Car.objects.all()
+        query.edit_message_text(
+            text='Выберите машину для добавления штрафа',
+            reply_markup=keyboard_utils.get_add_new_fine_menu(all_cars)
+        )
+    elif data == manage_data.SET_FINE_IS_PAID_MENU:
+        unpaid_fines = Fine.objects.filter(is_paid=False)
+        query.edit_message_text(
+            text='Выберите штраф, который будет отмечен оплаченным',
+            reply_markup=keyboard_utils.get_set_fine_is_paid_keyboard(
+                unpaid_fines)
         )
     elif data == manage_data.BACK:
         query.edit_message_reply_markup(
@@ -251,3 +273,41 @@ def admin_commands_handler(update: Update, context) -> None:
             )
         except error.BadRequest:
             return
+    elif data == manage_data.GET_ALL_FINES:
+        try:
+            query.edit_message_text(
+                text=utils.get_text_all_fines(),
+                reply_markup=keyboard_utils.get_fines_menu_keyboard()
+            )
+        except error.BadRequest:
+            return
+    elif data == manage_data.GET_PAID_FINES:
+        try:
+            query.edit_message_text(
+                text=utils.get_text_paid_fines(),
+                reply_markup=keyboard_utils.get_fines_menu_keyboard()
+            )
+        except error.BadRequest:
+            return
+    elif data == manage_data.GET_UNPAID_FINES:
+        try:
+            query.edit_message_text(
+                text=utils.get_text_unpaid_fines(),
+                reply_markup=keyboard_utils.get_fines_menu_keyboard()
+            )
+        except error.BadRequest:
+            return
+    elif data.startswith(manage_data.BASE_FOR_SET_FINE_IS_PAID):
+        fine_id = int(data.split('_')[-1])
+        fine = Fine.objects.get(id=fine_id)
+        fine.is_paid = True
+        fine.save()
+
+        text = (f'Штраф:\n'
+                f'{fine.car.license_plate[:-3]} - {fine.amount} руб. '
+                f'{get_verbose_date(fine.date)}\n\n'
+                f'✅ Оплачен ✅')
+        query.edit_message_text(
+            text=text,
+            reply_markup=keyboard_utils.get_fines_menu_keyboard()
+        )
