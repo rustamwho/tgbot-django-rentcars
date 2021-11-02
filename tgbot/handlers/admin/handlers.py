@@ -53,7 +53,7 @@ def admin_menu_handler(update: Update, context) -> None:
         all_cars_count = Car.objects.count()
         # Very slow because cars count little
         # (may update to search with contracts)
-        rented_cars_count = sum(1 for x in Car.objects.all() if x.is_busy)
+        rented_cars_count = len(Car.get_busy_cars())
         query.edit_message_text(
             text=static_text.COUNT_CARS.format(
                 all_cars_count=all_cars_count,
@@ -179,28 +179,25 @@ def admin_commands_handler(update: Update, context) -> None:
     elif data == manage_data.GET_UNAPPROVED_CONTRACTS:
         unapproved = Contract.objects.filter(is_approved=False).exists()
         # If unapproved contracts exists, send contracts for approve
-        # else edit message about
         if unapproved:
             query.edit_message_text(
                 text=static_text.NOW_SEND_UNAPPROVED_CONTRACTS
             )
             send_unapproved_contracts(chat_id, context)
         else:
-            if current_text != static_text.UNAPPROVED_CONTACTS_NOT_EXISTS:
+            try:
                 query.edit_message_text(
                     text=static_text.UNAPPROVED_CONTACTS_NOT_EXISTS,
                     reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
                 )
-            else:
-                query.edit_message_text(
-                    text=static_text.UNAPPROVED_CONTACTS_NOT_EXISTS2,
-                    reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
-                )
+            except error.BadRequest:
+                return
     # Approving contract
     elif data.startswith(manage_data.BASE_FOR_APPROVE_CONTRACT):
         contract_id = int(data.split('_')[-1])
         current_contract = Contract.objects.get(id=contract_id)
         current_contract.is_approved = True
+        current_contract.approved_at = now().date()
         current_contract.save()
 
         query.edit_message_text(
@@ -237,7 +234,7 @@ def admin_commands_handler(update: Update, context) -> None:
         except error.BadRequest:
             return
     elif data == manage_data.GET_RENTED_CARS:
-        all_rented_cars = [car for car in Car.objects.all() if car.is_busy]
+        all_rented_cars = Car.get_busy_cars()
 
         if not all_rented_cars:
             text = 'Арендованных машин нет'

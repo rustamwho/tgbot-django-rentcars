@@ -32,25 +32,24 @@ def start_contract(update: Update, context: CallbackContext) -> str:
 
     # If contracts with current user does exists
     # Send remaining time of the contract
-    if u.contract.exists():
-        valid_contracts = u.contract.filter(closed_at__gte=now().date())
-        if valid_contracts.exists():
-            valid_contract = valid_contracts.order_by('closed_at').last()
-
-            # When photos of car in contract does not exists
-            if not valid_contract.car_photos.all().exists():
-                update.message.reply_text(
-                    text=static_text.CONTRACT_EXISTS_NO_PHOTO,
-                    reply_markup=keyboard_utils.get_photo_cntrct_keyboard()
-                )
-                return ConversationHandler.END
-
-            days = (valid_contract.closed_at - now().date()).days
+    """if u.contracts.exists():
+        valid_contracts = u.contracts.filter(closed_at__gte=now().date())"""
+    active_contract = u.get_active_contract()
+    if active_contract:
+        # When photos of car in contract does not exists
+        if not active_contract.car_photos.all().exists():
             update.message.reply_text(
-                text=f'До конца действия договора осталось {days} дней.',
-                reply_markup=keyboard_utils.get_contract_commands_keyboard(),
+                text=static_text.CONTRACT_EXISTS_NO_PHOTO,
+                reply_markup=keyboard_utils.get_photo_cntrct_keyboard()
             )
             return ConversationHandler.END
+
+        days = (active_contract.closed_at - now().date()).days
+        update.message.reply_text(
+            text=f'До конца действия договора осталось {days} дней.',
+            reply_markup=keyboard_utils.get_contract_commands_keyboard(),
+        )
+        return ConversationHandler.END
 
     if hasattr(u, 'personal_data'):
         update.message.reply_text(text='Ваши персональные данные известны. ')
@@ -110,7 +109,7 @@ def download_existing_contract_handler(update: Update,
     query = update.callback_query
     data = query.data
 
-    current_contract = u.contract.order_by('closed_at').last()
+    current_contract = u.get_active_contract()
 
     if data == manage_data.DOWNLOAD_CONTRACT_FILE:
         query.edit_message_text(
@@ -185,7 +184,7 @@ def getting_photos_car_handler(update: Update,
     """Handler for receiving photos and save them."""
     u = User.get_user(update, context)
 
-    current_contract = u.contract.order_by('closed_at').last()
+    current_contract = u.get_active_contract()
 
     # Name photo
     photos_count = current_contract.car_photos.count() + 1
@@ -221,7 +220,7 @@ def stop_getting_car_photos_handler(update: Update,
     """When user send 'Готово'. Conversation will be closed."""
     u = User.get_user(update, context)
 
-    current_contract = u.contract.order_by('closed_at').last()
+    current_contract = u.get_active_contract()
     photos_count = current_contract.car_photos.count()
 
     update.message.reply_text(
@@ -280,7 +279,7 @@ def create_save_send_contract(u: User,
         f'Сформирован новый договор с {name_user}.\n'
         f'Срок действия договора - до {contract_closed_at}.'
     )
-    contr = u.contract.order_by('closed_at').last()
+    contr = u.get_active_contract()
     for admin in admins:
         context.bot.send_message(
             chat_id=admin.user_id,
