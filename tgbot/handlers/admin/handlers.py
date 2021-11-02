@@ -5,6 +5,8 @@ from django.utils.timezone import now
 
 from telegram import ParseMode, Update, error
 from telegram.ext.callbackcontext import CallbackContext
+from telegram.ext import (MessageHandler, ConversationHandler, Filters,
+                          CommandHandler, CallbackQueryHandler)
 
 from general_utils.utils import get_verbose_date
 
@@ -13,6 +15,8 @@ from tgbot.handlers.admin import (static_text, utils, keyboard_utils,
 from tgbot.models import User
 
 from rentcars.models import Contract, PersonalData, Car, Fine
+
+FINE_DATE, FINE_AMOUNT = range(1, 3)
 
 
 def admin_only_handler(func: Callable):
@@ -179,7 +183,7 @@ def send_unapproved_contracts(admin_id: int,
 
 
 @admin_only_handler
-def admin_commands_handler(update: Update, context) -> None:
+def admin_commands_handler(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     data = query.data
 
@@ -311,3 +315,45 @@ def admin_commands_handler(update: Update, context) -> None:
             text=text,
             reply_markup=keyboard_utils.get_fines_menu_keyboard()
         )
+    elif data.startswith(manage_data.BASE_FOR_ADD_NEW_FINE):
+        car_id = int(data.split('_')[-1])
+        car = Car.objects.get(id=car_id)
+        context.user_data['car'] = car
+        query.edit_message_text(
+            text=f'Выбрана машина:\n{car.license_plate}\n\nВведите дату'
+        )
+
+        return FINE_DATE
+
+
+def fine_date_handler(update: Update, context: CallbackContext):
+    input_date = update.message.text
+    # TODO: Добавить общение с юзером по поводу добавления штрафа
+    # Машина уже в context.user_data
+    print(context.user_data['car'].model)
+
+
+def cancel_handler(update: Update, context: CallbackContext) -> int:
+    """Отменить весь процесс диалога. Данные будут утеряны."""
+    update.message.reply_text('Отмена. Для начала с нуля нажмите /contract')
+    return ConversationHandler.END
+
+
+def get_conversation_handler_for_fine():
+    """Return Conversation handler for /contract"""
+    conv_handler = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(
+                admin_commands_handler,
+                pattern=f'^{manage_data.BASE_FOR_ADD_NEW_FINE}', pass_user_data=True),
+        ],
+        states={
+            FINE_DATE: [
+                MessageHandler(Filters.text, fine_date_handler)
+            ],
+        },
+        fallbacks=[
+            CommandHandler('cancel', cancel_handler),
+        ]
+    )
+    return conv_handler

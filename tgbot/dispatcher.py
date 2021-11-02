@@ -52,6 +52,7 @@ def setup_dispatcher(dp):
         CallbackQueryHandler(
             admin_handlers.admin_commands_handler,
             pattern=f'^{admin_manage_data.BASE_ADMIN_COMMANDS}'))
+    dp.add_handler(admin_handlers.get_conversation_handler_for_fine())
 
     # dp.add_handler(CommandHandler('export_users', admin_handlers.export_users))
 
