@@ -1,9 +1,12 @@
+import datetime
 from datetime import timedelta
 from typing import Callable
 
 from django.utils.timezone import now
+from django.core.exceptions import ValidationError
 
 from telegram import ParseMode, Update, error
+from telegram.error import BadRequest, Unauthorized
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.ext import (MessageHandler, ConversationHandler, Filters,
                           CommandHandler, CallbackQueryHandler)
@@ -15,8 +18,9 @@ from tgbot.handlers.admin import (static_text, utils, keyboard_utils,
 from tgbot.models import User
 
 from rentcars.models import Contract, PersonalData, Car, Fine
+from rentcars import validators
 
-FINE_DATE, FINE_AMOUNT = range(1, 3)
+CAR, FINE_DATE, FINE_AMOUNT = range(1, 4)
 
 
 def admin_only_handler(func: Callable):
@@ -315,12 +319,15 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
             text=text,
             reply_markup=keyboard_utils.get_fines_menu_keyboard()
         )
+    # Adding new fine
     elif data.startswith(manage_data.BASE_FOR_ADD_NEW_FINE):
         car_id = int(data.split('_')[-1])
         car = Car.objects.get(id=car_id)
-        context.user_data['car'] = car
+        context.user_data[CAR] = car
         query.edit_message_text(
-            text=f'Выбрана машина:\n{car.license_plate}\n\nВведите дату'
+            text=static_text.ASK_DATE_FINE.format(
+                license_plate=car.license_plate),
+            parse_mode=ParseMode.HTML,
         )
 
         return FINE_DATE
@@ -328,14 +335,95 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
 
 def fine_date_handler(update: Update, context: CallbackContext):
     input_date = update.message.text
-    # TODO: Добавить общение с юзером по поводу добавления штрафа
-    # Машина уже в context.user_data
-    print(context.user_data['car'].model)
+
+    try:
+        validators.date_validate(input_date)
+    except ValidationError as e:
+        update.message.reply_text(e.message + '\n\nПовторите ввод.')
+        return FINE_DATE
+
+    context.user_data[FINE_DATE] = input_date
+
+    update.message.reply_text(
+        text=static_text.ASK_AMOUNT_FINE,
+        parse_mode=ParseMode.HTML,
+    )
+
+    return FINE_AMOUNT
+
+
+def fine_amount_handler(update: Update, context: CallbackContext):
+    input_amount = update.message.text
+    try:
+        input_amount = int(input_amount)
+    except ValueError as e:
+        update.message.reply_text('Сумма штрафа должна быть ТОЛЬКО числом. '
+                                  'Например, 1500.\n\nПовторите ввод')
+        return FINE_AMOUNT
+
+    context.user_data[FINE_AMOUNT] = input_amount
+    new_fine = Fine(
+        car=context.user_data[CAR],
+        date=context.user_data[FINE_DATE],
+        amount=context.user_data[FINE_AMOUNT],
+    )
+    new_fine.save()
+
+    text_for_admin = static_text.NEW_FINE_IS_CREATED.format(
+        license_plate=new_fine.car.license_plate,
+        date=new_fine.get_date_in_str(),
+        amount=new_fine.amount,
+    )
+
+    if not new_fine.contract:
+        text_for_admin += '❗В эту дату машина не была арендована'
+        update.message.reply_text(
+            text=text_for_admin,
+        )
+        return ConversationHandler.END
+
+    is_message_to_user_sent: bool = True
+    # Send info about new fine to user
+    text_for_user = static_text.MESSAGE_NEW_FINE_USER.format(
+        license_plate=new_fine.car.license_plate,
+        date=new_fine.get_date_in_str(),
+        amount=new_fine.amount,
+    )
+    try:
+        context.bot.send_message(
+            chat_id=new_fine.user.user_id,
+            text=text_for_user,
+        )
+    except BadRequest:
+        is_message_to_user_sent = False
+    except Unauthorized:
+        is_message_to_user_sent = False
+
+    # Send to admin full info about user in New Fine
+    user_pd = new_fine.user.personal_data
+    user_name = (f'{user_pd.last_name} {user_pd.first_name[0]}.'
+                 f'{user_pd.middle_name[0]}.')
+    url_to_user = (f'@{new_fine.user.username}' if new_fine.user.username
+                   else 'Не указан никнейм:(')
+    text_for_admin += static_text.NEW_FINE_ABOUT_USER.format(
+        user_name=user_name,
+        url_to_user=url_to_user,
+        telegram_id=new_fine.user.user_id,
+        phone_number=user_pd.phone_number,
+    )
+    text_for_admin += (static_text.MESSAGE_TO_USER_SENT
+                       if is_message_to_user_sent
+                       else static_text.MESSAGE_TO_USER_NOT_SENT)
+    update.message.reply_text(
+        text=text_for_admin
+    )
+
+    return ConversationHandler.END
 
 
 def cancel_handler(update: Update, context: CallbackContext) -> int:
     """Отменить весь процесс диалога. Данные будут утеряны."""
-    update.message.reply_text('Отмена. Для начала с нуля нажмите /contract')
+    update.message.reply_text('Отмена. Для начала с нуля нажмите /admin')
     return ConversationHandler.END
 
 
@@ -345,12 +433,16 @@ def get_conversation_handler_for_fine():
         entry_points=[
             CallbackQueryHandler(
                 admin_commands_handler,
-                pattern=f'^{manage_data.BASE_FOR_ADD_NEW_FINE}', pass_user_data=True),
+                pattern=f'^{manage_data.BASE_FOR_ADD_NEW_FINE}',
+                pass_user_data=True),
         ],
         states={
             FINE_DATE: [
                 MessageHandler(Filters.text, fine_date_handler)
             ],
+            FINE_AMOUNT: [
+                MessageHandler(Filters.text, fine_amount_handler)
+            ]
         },
         fallbacks=[
             CommandHandler('cancel', cancel_handler),
