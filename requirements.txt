@@ -10,6 +10,9 @@ django-cors-headers
 django-debug-toolbar~=3.2.2
 whitenoise
 
+# For ImageFields
+Pillow~=8.4.0
+
 # Django 3.0 async requirements
 gunicorn
 uvicorn
@@ -36,3 +39,6 @@ docxtpl~=0.14.2
 
 # For slugify
 pytils~=0.3
+
+# For cleaning
+django_cleanup~=5.2.0
