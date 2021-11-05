@@ -355,7 +355,7 @@ class Fine(models.Model):
         ordering = ['is_paid', '-date']
 
     def __str__(self):
-        return f'{self.amount} - {self.car} - {self.date}'
+        return f'{self.amount} - {self.car} - {self.get_date_in_str()}'
 
     def save(self, *args, **kwargs):
         if isinstance(self.date, str):
@@ -372,3 +372,7 @@ class Fine(models.Model):
                 )
                 self.user = self.contract.user
         super().save(*args, *kwargs)
+
+    def get_date_in_str(self):
+        """Return date of fine in str 'dd.mm.yyyy' format."""
+        return get_verbose_date(self.date)
