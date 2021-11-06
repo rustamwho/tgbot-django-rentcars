@@ -48,4 +48,4 @@ class CarAdmin(admin.ModelAdmin):
 
 @admin.register(Fine)
 class FineAdmin(admin.ModelAdmin):
-    list_display = ('car', 'date', 'amount', 'is_paid', 'user', 'contract')
+    list_display = ('car', 'datetime', 'amount', 'is_paid', 'user', 'contract')

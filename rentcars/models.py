@@ -1,7 +1,8 @@
 import datetime
 
 from django.db import models
-from django.utils.timezone import now
+from django.utils.timezone import now, localtime
+from django.utils import timezone
 from django.core.validators import EmailValidator
 
 from general_utils.models import CreateUpdateTracker
@@ -213,7 +214,7 @@ class Car(models.Model):
 
     @property
     def is_busy(self):
-        return self.contracts.filter(closed_at__gte=now().date()).exists()
+        return self.contracts.filter(closed_at__gte=now()).exists()
 
     @classmethod
     def get_busy_cars(cls):
@@ -267,29 +268,32 @@ class Contract(models.Model):
         verbose_name='Машина',
     )
 
-    created_at = models.DateField(
+    created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Дата формирования договора'
     )
-    approved_at = models.DateField(
+    approved_at = models.DateTimeField(
         verbose_name='Дата подтверждения договора',
         blank=True,
         null=True,
     )
-    closed_at = models.DateField(
+    closed_at = models.DateTimeField(
         verbose_name='Дата завершения действия договора'
     )
 
     def __str__(self):
-        return f'№{self.id} от {get_verbose_date(self.created_at)}'
+        return f'№{self.id} от {self.get_created_at_in_str()}'
 
     @property
     def is_active(self):
-        return self.closed_at >= now().date()
+        return self.closed_at >= now()
 
     class Meta:
         verbose_name = 'Договор'
         verbose_name_plural = 'Договоры'
+
+    def get_created_at_in_str(self):
+        return localtime(self.created_at).strftime('%d.%m.%Y %H:%M')
 
 
 class PhotoCarContract(models.Model):
@@ -320,8 +324,9 @@ class Fine(models.Model):
         related_name='fines',
         verbose_name='Машина',
     )
-    date = models.DateField(
-        verbose_name='Дата штрафа',
+    datetime = models.DateTimeField(
+        verbose_name='Дата и время штрафа',
+        null=True,
     )
     amount = models.PositiveIntegerField(
         verbose_name='Сумма штрафа',
@@ -352,22 +357,27 @@ class Fine(models.Model):
     class Meta:
         verbose_name = 'Штраф'
         verbose_name_plural = 'Штрафы'
-        ordering = ['is_paid', '-date']
+        ordering = ['is_paid', '-datetime']
 
     def __str__(self):
-        return f'{self.amount} - {self.car} - {self.get_date_in_str()}'
+        return f'{self.amount} - {self.car} - {self.get_datetime_in_str()}'
 
     def save(self, *args, **kwargs):
-        if isinstance(self.date, str):
-            self.date = datetime.datetime.strptime(self.date, '%d.%m.%Y')
+        if isinstance(self.datetime, str):
+            self.datetime = datetime.datetime.strptime(
+                self.datetime,
+                '%d.%m.%Y %H:%M').astimezone(
+                tz=timezone.get_current_timezone()
+            )
         if not self.contract:
-            valid_contr = Contract.objects.filter(approved_at__lte=self.date,
-                                                  closed_at__gte=self.date,
-                                                  car=self.car)
+            valid_contr = Contract.objects.filter(
+                approved_at__lte=self.datetime,
+                closed_at__gte=self.datetime,
+                car=self.car)
             if valid_contr.exists():
                 self.contract = Contract.objects.get(
-                    approved_at__lte=self.date,
-                    closed_at__gte=self.date,
+                    approved_at__lte=self.datetime,
+                    closed_at__gte=self.datetime,
                     car=self.car,
                 )
                 self.user = self.contract.user
@@ -375,4 +385,7 @@ class Fine(models.Model):
 
     def get_date_in_str(self):
         """Return date of fine in str 'dd.mm.yyyy' format."""
-        return get_verbose_date(self.date)
+        return get_verbose_date(self.datetime)
+
+    def get_datetime_in_str(self):
+        return localtime(self.datetime).strftime('%d.%m.%Y %H:%M')

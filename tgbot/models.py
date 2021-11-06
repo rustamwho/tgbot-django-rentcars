@@ -74,6 +74,6 @@ class User(CreateUpdateTracker):
         return f"{self.first_name} {self.last_name}" if self.last_name else f"{self.first_name}"
 
     def get_active_contract(self):
-        if self.contracts.filter(closed_at__gte=now().date()).exists():
-            return self.contracts.get(closed_at__gte=now().date())
+        if self.contracts.filter(closed_at__gte=now()).exists():
+            return self.contracts.get(closed_at__gte=now())
         return None

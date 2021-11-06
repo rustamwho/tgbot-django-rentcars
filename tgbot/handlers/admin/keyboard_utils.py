@@ -192,7 +192,7 @@ def get_set_fine_is_paid_keyboard(unpaid_fines: list[Fine]):
         [
             InlineKeyboardButton(
                 f'🚔 {fine.car.license_plate[:-3]} - '
-                f'{fine.amount} руб. {get_verbose_date(fine.date)}',
+                f'{fine.amount} руб. {fine.get_datetime_in_str()}',
                 callback_data=(manage_data.BASE_FOR_SET_FINE_IS_PAID +
                                str(fine.id))
             )

@@ -246,7 +246,7 @@ def create_save_send_contract(u: User,
         file=File(new_contract_io,
                   name=(slugify(u.personal_data.last_name) +
                         str(now().date()) + '.docx')),
-        closed_at=datetime.date.today() + datetime.timedelta(days=10)
+        closed_at=now() + datetime.timedelta(days=10)
     )
     contr.save()
 

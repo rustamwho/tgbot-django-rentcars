@@ -94,7 +94,7 @@ def get_text_all_arendators():
                 u.personal_data.first_name[0] + '. ' +
                 u.personal_data.middle_name[0] + '.')
         valid_contract: Contract = u.get_active_contract()
-        days = (valid_contract.closed_at - now().date()).days
+        days = (valid_contract.closed_at - now()).days
         if valid_contract.car:
             text += (f'{i}. {name} ({valid_contract.car.license_plate} - '
                      f'осталось {days} дней)\n')
@@ -110,25 +110,25 @@ def get_text_all_fines():
     if not Fine.objects.exists():
         return 'Штрафов нет'
     text = 'Все штрафы:\n'
-    for i, fine in enumerate(Fine.objects.all().order_by('-date'), 1):
+    for i, fine in enumerate(Fine.objects.all().order_by('-datetime'), 1):
         if fine.user:
             pd: PersonalData = fine.user.personal_data
             row = (f'{fine.car.license_plate[:-3]} - {fine.amount} руб. '
-                   f'{get_verbose_date(fine.date)} - '
+                   f'{fine.get_datetime_in_str()} - '
                    f'{pd.last_name} {pd.first_name[0]}.'
                    f'{pd.middle_name[0]}.\n')
             text += f'{i}. {row}'
         else:
             text += (
                 f'{i}. {fine.car.license_plate[:-3]} - {fine.amount} руб. '
-                f'{get_verbose_date(fine.date)}\n')
+                f'{fine.get_datetime_in_str()}\n')
 
     return text
 
 
 def get_text_paid_fines():
     """Return text for paid fines with license plate of car, date and user."""
-    paid_fines = Fine.objects.filter(is_paid=True).order_by('-date')
+    paid_fines = Fine.objects.filter(is_paid=True).order_by('-datetime')
     if not paid_fines.exists():
         return 'Оплаченных штрафов нет'
     text = 'Оплаченные штрафы:\n'
@@ -136,21 +136,21 @@ def get_text_paid_fines():
         if fine.user:
             pd: PersonalData = fine.user.personal_data
             row = (f'{fine.car.license_plate[:-3]} - {fine.amount} руб. '
-                   f'{get_verbose_date(fine.date)} - '
+                   f'{fine.get_datetime_in_str()} - '
                    f'{pd.last_name} {pd.first_name[0]}.'
                    f'{pd.middle_name[0]}.\n')
             text += f'{i}. {row}'
         else:
             text += (
                 f'{i}. {fine.car.license_plate[:-3]} - {fine.amount} руб. '
-                f'{get_verbose_date(fine.date)}\n')
+                f'{fine.get_datetime_in_str()}\n')
 
     return text
 
 
 def get_text_unpaid_fines():
     """Return text for unpaid fines with license plate of car, date, user."""
-    unpaid_fines = Fine.objects.filter(is_paid=False).order_by('-date')
+    unpaid_fines = Fine.objects.filter(is_paid=False).order_by('-datetime')
     if not unpaid_fines.exists():
         return 'Неоплаченных штрафов нет'
     text = 'Неоплаченные штрафы:\n'
@@ -158,13 +158,13 @@ def get_text_unpaid_fines():
         if fine.user:
             pd: PersonalData = fine.user.personal_data
             row = (f'{fine.car.license_plate[:-3]} - {fine.amount} руб. '
-                   f'{get_verbose_date(fine.date)} - '
+                   f'{fine.get_datetime_in_str()} - '
                    f'{pd.last_name} {pd.first_name[0]}.'
                    f'{pd.middle_name[0]}.\n')
             text += f'{i}. {row}'
         else:
             text += (
                 f'{i}. {fine.car.license_plate[:-3]} - {fine.amount} руб. '
-                f'{get_verbose_date(fine.date)}\n')
+                f'{fine.get_datetime_in_str()}\n')
 
     return text
