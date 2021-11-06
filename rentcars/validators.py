@@ -27,7 +27,7 @@ def phone_number_validator(value: str) -> None:
 def date_validate(value: str) -> None:
     """Date must be in format <dd.mm.yyyy>."""
     reg_validator = RegexValidator(
-        regex=r'^(?P<day>\d{1,2}).(?P<month>\d{1,2}).(?P<year>\d{4})$',
+        regex=r'^\d{1,2}\.\d{1,2}\.\d{4}$',
         message='Дата должна быть в формате ДД.ММ.ГГГГ. Например, 31.12.2021.')
     reg_validator(value)
     day, month, year = (int(x) for x in value.split('.'))
@@ -35,6 +35,14 @@ def date_validate(value: str) -> None:
         raise ValidationError(message=('Дата должна быть в формате ДД.ММ.ГГГГ.'
                                        ' Например, 31.12.2021.')
                               )
+
+
+def time_validate(value: str) -> None:
+    reg_validator = RegexValidator(
+        regex=r'^[0-2]?[0-9]?:[0-5]?[0-9]?$',
+        message='Время должно быть в формате ЧЧ:ММ. Например, 14:35.'
+    )
+    reg_validator(value)
 
 
 def birthday_date_validate(born: str) -> None:
