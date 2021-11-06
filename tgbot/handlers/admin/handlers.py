@@ -20,7 +20,7 @@ from tgbot.models import User
 from rentcars.models import Contract, PersonalData, Car, Fine
 from rentcars import validators
 
-CAR, FINE_DATE, FINE_AMOUNT = range(1, 4)
+CAR, FINE_DATE, FINE_TIME, FINE_AMOUNT = range(1, 5)
 
 
 def admin_only_handler(func: Callable):
@@ -202,10 +202,13 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
         )
     elif data == manage_data.GET_ARENDATORS:
         text = utils.get_text_all_arendators()
-        query.edit_message_text(
-            text=text,
-            reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
-        )
+        try:
+            query.edit_message_text(
+                text=text,
+                reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
+            )
+        except error.BadRequest:
+            return
     elif data == manage_data.GET_UNAPPROVED_CONTRACTS:
         unapproved = Contract.objects.filter(is_approved=False).exists()
         # If unapproved contracts exists, send contracts for approve
@@ -227,7 +230,7 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
         contract_id = int(data.split('_')[-1])
         current_contract = Contract.objects.get(id=contract_id)
         current_contract.is_approved = True
-        current_contract.approved_at = now().date()
+        current_contract.approved_at = now()
         current_contract.save()
 
         query.edit_message_text(
@@ -313,7 +316,7 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
 
         text = (f'Штраф:\n'
                 f'{fine.car.license_plate[:-3]} - {fine.amount} руб. '
-                f'{get_verbose_date(fine.date)}\n\n'
+                f'{fine.get_datetime_in_str()}\n\n'
                 f'✅ Оплачен ✅')
         query.edit_message_text(
             text=text,
@@ -345,6 +348,25 @@ def fine_date_handler(update: Update, context: CallbackContext):
     context.user_data[FINE_DATE] = input_date
 
     update.message.reply_text(
+        text=static_text.ASK_TIME_FINE,
+        parse_mode=ParseMode.HTML,
+    )
+
+    return FINE_TIME
+
+
+def fine_time_handler(update: Update, context: CallbackContext):
+    input_time = update.message.text
+
+    try:
+        validators.time_validate(input_time)
+    except ValidationError as e:
+        update.message.reply_text(e.message + '\n\nПовторите ввод.')
+        return FINE_TIME
+
+    context.user_data[FINE_TIME] = input_time
+
+    update.message.reply_text(
         text=static_text.ASK_AMOUNT_FINE,
         parse_mode=ParseMode.HTML,
     )
@@ -364,14 +386,15 @@ def fine_amount_handler(update: Update, context: CallbackContext):
     context.user_data[FINE_AMOUNT] = input_amount
     new_fine = Fine(
         car=context.user_data[CAR],
-        date=context.user_data[FINE_DATE],
+        datetime=(f'{context.user_data[FINE_DATE]} '
+                  f'{context.user_data[FINE_TIME]}'),
         amount=context.user_data[FINE_AMOUNT],
     )
     new_fine.save()
 
     text_for_admin = static_text.NEW_FINE_IS_CREATED.format(
         license_plate=new_fine.car.license_plate,
-        date=new_fine.get_date_in_str(),
+        date=new_fine.get_datetime_in_str(),
         amount=new_fine.amount,
     )
 
@@ -386,7 +409,7 @@ def fine_amount_handler(update: Update, context: CallbackContext):
     # Send info about new fine to user
     text_for_user = static_text.MESSAGE_NEW_FINE_USER.format(
         license_plate=new_fine.car.license_plate,
-        date=new_fine.get_date_in_str(),
+        date=new_fine.get_datetime_in_str(),
         amount=new_fine.amount,
     )
     try:
@@ -439,6 +462,9 @@ def get_conversation_handler_for_fine():
         states={
             FINE_DATE: [
                 MessageHandler(Filters.text, fine_date_handler)
+            ],
+            FINE_TIME: [
+                MessageHandler(Filters.text, fine_time_handler)
             ],
             FINE_AMOUNT: [
                 MessageHandler(Filters.text, fine_amount_handler)
