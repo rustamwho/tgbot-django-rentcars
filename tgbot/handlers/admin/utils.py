@@ -96,11 +96,14 @@ def get_text_all_arendators():
         valid_contract: Contract = u.get_active_contract()
         days = (valid_contract.closed_at - now()).days
         if valid_contract.car:
-            text += (f'{i}. {name} ({valid_contract.car.license_plate} - '
-                     f'осталось {days} дней)\n')
+            text += (
+                f'{i}. {name} ({valid_contract.car.license_plate} - '
+                f'осталось {days} дней)\n'
+                f'Начало аренды: {valid_contract.get_approved_at_in_str()}\n'
+                f'Конец аренды: {valid_contract.get_closed_at_in_str()}\n\n')
         else:
             text += (f'{i}. {name} (Машина не назначена - '
-                     f'осталось {days} дней)\n')
+                     f'осталось {days} дней)\n\n')
 
     return text
 
