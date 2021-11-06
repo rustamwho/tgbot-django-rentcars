@@ -229,8 +229,26 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
     elif data.startswith(manage_data.BASE_FOR_APPROVE_CONTRACT):
         contract_id = int(data.split('_')[-1])
         current_contract = Contract.objects.get(id=contract_id)
+        current_text = current_text.replace(
+            static_text.CONTRACT_CANT_BE_APPROVED, ''
+        )
+        if not current_contract.car_photos.exists():
+            is_car_exists = current_contract.car is not None
+            keyboard = keyboard_utils.get_approve_contract_keyboard(
+                current_contract.id, is_car_exists
+            )
+            try:
+                query.edit_message_text(
+                    text=current_text + static_text.CONTRACT_CANT_BE_APPROVED,
+                    reply_markup=keyboard,
+                )
+            except error.BadRequest:
+                return
+
+            return
         current_contract.is_approved = True
         current_contract.approved_at = now()
+        current_contract.closed_at = now().replace(year=now().year + 1)
         current_contract.save()
 
         query.edit_message_text(
