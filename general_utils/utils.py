@@ -1,6 +1,6 @@
 import datetime
 
-from general_utils.constants import trans_dict_eng_rus
+from rentcars.models import Car
 
 
 def get_verbose_date(date: datetime.date) -> str:
@@ -8,11 +8,11 @@ def get_verbose_date(date: datetime.date) -> str:
     return datetime.date.strftime(date, '%d.%m.%Y')
 
 
-def transliterate_license_plate(license_plate: str) -> str:
-    """Return License plate in russian language."""
-    for symbol in license_plate:
-        if symbol.isalpha():
-            print('ras')
-            license_plate = license_plate.replace(symbol,
-                                                  trans_dict_eng_rus[symbol])
-    return license_plate
+def get_text_about_car(car: Car) -> str:
+    text = ''
+    for field in car._meta.concrete_fields:
+        if field.name == 'id':
+            continue
+        text += (f'📍<b>{field.verbose_name}:</b> '
+                 f'{car.__getattribute__(field.name)}\n')
+    return text
