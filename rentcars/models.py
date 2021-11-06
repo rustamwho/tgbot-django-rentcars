@@ -7,11 +7,11 @@ from django.core.validators import EmailValidator
 
 from general_utils.models import CreateUpdateTracker
 from general_utils.constants import GENDER_CHOICES
-from general_utils.utils import get_verbose_date, transliterate_license_plate
 from tgbot.models import User
 
 import rentcars.validators as cstm_validators
 from rentcars.utils.paths import car_photos_path, contract_photos_path
+from rentcars.utils.utils import transliterate_license_plate
 
 
 class PersonalData(CreateUpdateTracker):
@@ -192,12 +192,14 @@ class Car(models.Model):
     sts_serial = models.CharField(
         max_length=4,
         validators=[cstm_validators.sts_serial_validator],
-        verbose_name='Серия свидетельства о регистрации ТС'
+        verbose_name='Серия СТС',
+        help_text='Серия свидетельства о регистрации ТС'
     )
     sts_number = models.CharField(
         max_length=6,
         validators=[cstm_validators.sts_number_validator],
-        verbose_name='Номер свидетельства о регистрации ТС'
+        verbose_name='Номер СТС',
+        help_text='Номер свидетельства о регистрации ТС'
     )
 
     def save(self, *args, **kwargs):
@@ -219,6 +221,9 @@ class Car(models.Model):
     @classmethod
     def get_busy_cars(cls):
         return cls.objects.filter(contracts__closed_at__gte=now().date())
+
+    def get_short_info(self):
+        return f'{self.license_plate} - {self.model}'
 
 
 class PhotoCar(models.Model):
@@ -294,6 +299,12 @@ class Contract(models.Model):
 
     def get_created_at_in_str(self):
         return localtime(self.created_at).strftime('%d.%m.%Y %H:%M')
+
+    def get_approved_at_in_str(self):
+        return localtime(self.approved_at).strftime('%d.%m.%Y %H:%M')
+
+    def get_closed_at_in_str(self):
+        return localtime(self.closed_at).strftime('%d.%m.%Y %H:%M')
 
 
 class PhotoCarContract(models.Model):
@@ -385,7 +396,7 @@ class Fine(models.Model):
 
     def get_date_in_str(self):
         """Return date of fine in str 'dd.mm.yyyy' format."""
-        return get_verbose_date(self.datetime)
+        return self.datetime.strftime('%d.%m.%Y')
 
     def get_datetime_in_str(self):
         return localtime(self.datetime).strftime('%d.%m.%Y %H:%M')
