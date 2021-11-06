@@ -77,3 +77,8 @@ class User(CreateUpdateTracker):
         if self.contracts.filter(closed_at__gte=now()).exists():
             return self.contracts.get(closed_at__gte=now())
         return None
+
+    def get_user_fines(self):
+        if self.fines.exists():
+            return self.fines.all()
+        return None
