@@ -3,7 +3,7 @@ import io
 
 from pytils.translit import slugify
 
-from telegram import ParseMode, Update
+from telegram import ParseMode, Update, error
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.ext import (MessageHandler, ConversationHandler, Filters,
                           CommandHandler, CallbackQueryHandler)
@@ -14,7 +14,7 @@ from django.core.files import File
 from django.forms.models import model_to_dict
 from django.utils.timezone import now
 
-from general_utils.utils import get_verbose_date
+from general_utils.utils import get_verbose_date, get_text_about_car
 from general_utils.constants import GENDER_CHOICES
 from tgbot.models import User
 from tgbot.handlers.contract import static_text, keyboard_utils, manage_data
@@ -38,16 +38,26 @@ def start_contract(update: Update, context: CallbackContext) -> str:
     if active_contract:
         # When photos of car in contract does not exists
         if not active_contract.car_photos.all().exists():
+            text = static_text.CONTRACT_EXISTS_NO_PHOTO
+            if active_contract.car:
+                text += static_text.CONTRACT_EXISTS_CAR.format(
+                    car_info=active_contract.car.get_short_info()
+                )
             update.message.reply_text(
-                text=static_text.CONTRACT_EXISTS_NO_PHOTO,
+                text=text,
                 reply_markup=keyboard_utils.get_photo_cntrct_keyboard()
             )
             return ConversationHandler.END
 
-        days = (active_contract.closed_at - now().date()).days
+        days = (active_contract.closed_at - now()).days
+        text = f'До конца действия договора осталось {days} дней.'
+        if active_contract.car:
+            text += static_text.CONTRACT_EXISTS_CAR.format(
+                car_info=active_contract.car.get_short_info()
+            )
         update.message.reply_text(
-            text=f'До конца действия договора осталось {days} дней.',
-            reply_markup=keyboard_utils.get_contract_commands_keyboard(),
+            text=text,
+            reply_markup=keyboard_utils.get_contract_menu_keyboard(),
         )
         return ConversationHandler.END
 
@@ -89,13 +99,58 @@ def get_finish_personal_data(user: User) -> str:
 
 
 def contract_menu_handler(update: Update,
-                          context: CallbackContext) -> str:
+                          context: CallbackContext) -> str or None:
     query = update.callback_query
     data = query.data
+    u = User.get_user(update, context)
 
     current_text = update.effective_message.text
+    if data == manage_data.GET_INFO_ABOUT_MY_CAR:
+        active_contract = u.get_active_contract()
+        if not active_contract.car:
+            try:
+                query.edit_message_text(
+                    text=static_text.CONTRACT_NOT_EXISTS_CAR,
+                    reply_markup=keyboard_utils.get_contract_menu_keyboard()
+                )
+            except error.BadRequest:
+                return
+            return
+        car = active_contract.car
+        text = '<b>Ваша машина:</b>:\n' + get_text_about_car(car)
+        try:
+            query.edit_message_text(
+                text=text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboard_utils.get_contract_menu_keyboard(),
+            )
+        except error.BadRequest:
+            return
+    # Main menu of user's fines
+    elif data == manage_data.MY_FINES_MENU:
+        # Calculate all fines and unpaid_fines
+        all_fines = u.get_user_fines()
+        if not all_fines:
+            all_fines_count, unpaid_fines_count = 0, 0
+        else:
+            all_fines_count = len(all_fines)
+            unpaid_fines_count = sum(
+                1 for fine in all_fines if not fine.is_paid)
 
-    if data == manage_data.REMOVE_KEYBOARD:
+        text = static_text.MY_FINES_MENU_TEXT.format(
+            all_fines_count=all_fines_count,
+            unpaid_fines_count=unpaid_fines_count,
+        )
+        query.edit_message_text(
+            text=text,
+            reply_markup=keyboard_utils.get_my_fines_menu_keyboard()
+        )
+    # TODO: Добавить просмотр всех штрафов, оплаченных, неоплаченных и отметка
+    elif data == manage_data.TO_MAIN_MENU:
+        query.edit_message_reply_markup(
+            reply_markup=keyboard_utils.get_contract_menu_keyboard()
+        )
+    elif data == manage_data.REMOVE_KEYBOARD:
         query.edit_message_text(text=current_text)
 
     return ConversationHandler.END
@@ -246,7 +301,7 @@ def create_save_send_contract(u: User,
         file=File(new_contract_io,
                   name=(slugify(u.personal_data.last_name) +
                         str(now().date()) + '.docx')),
-        closed_at=now() + datetime.timedelta(days=10)
+        closed_at=now().replace(year=now().year + 1)
     )
     contr.save()
 

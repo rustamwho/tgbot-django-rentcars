@@ -36,7 +36,7 @@ def get_photo_cntrct_keyboard():
     return InlineKeyboardMarkup(buttons)
 
 
-def get_contract_commands_keyboard():
+def get_contract_menu_keyboard():
     buttons = [
         [
             InlineKeyboardButton(
@@ -49,8 +49,43 @@ def get_contract_commands_keyboard():
                 callback_data=manage_data.DOWNLOAD_CONTRACT_FILE)
         ],
         [
+            InlineKeyboardButton(
+                text='🚘 Информация о машине 🚘',
+                callback_data=manage_data.GET_INFO_ABOUT_MY_CAR,
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text='🚔 Мои штрафы 🚔',
+                callback_data=manage_data.MY_FINES_MENU,
+            )
+        ],
+        [
             InlineKeyboardButton('Закрыть ✅',
                                  callback_data=manage_data.REMOVE_KEYBOARD)
+        ]
+    ]
+
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_my_fines_menu_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton(text='🚔 Все штрафы',
+                                 callback_data=manage_data.MY_ALL_FINES)
+        ],
+        [
+            InlineKeyboardButton(text='✅ Оплаченные штрафы',
+                                 callback_data=manage_data.MY_PAID_FINES)
+        ],
+        [
+            InlineKeyboardButton(text='❓ Неоплаченные штрафы',
+                                 callback_data=manage_data.MY_UNPAID_FINES)
+        ],
+        [
+            InlineKeyboardButton('Назад ⬅️',
+                                 callback_data=manage_data.TO_MAIN_MENU)
         ]
     ]
 
