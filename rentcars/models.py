@@ -223,6 +223,7 @@ class Car(models.Model):
         return cls.objects.filter(contracts__closed_at__gte=now().date())
 
     def get_short_info(self):
+        """Return info 'LICENSE_PLATE - MODEL' for current car."""
         return f'{self.license_plate} - {self.model}'
 
 
@@ -283,7 +284,7 @@ class Contract(models.Model):
         null=True,
     )
     closed_at = models.DateTimeField(
-        verbose_name='Дата завершения действия договора'
+        verbose_name='Дата завершения действия договора',
     )
 
     def __str__(self):
@@ -291,7 +292,7 @@ class Contract(models.Model):
 
     @property
     def is_active(self):
-        return self.closed_at >= now()
+        return self.closed_at >= now() if self.closed_at else True
 
     class Meta:
         verbose_name = 'Договор'
@@ -301,10 +302,14 @@ class Contract(models.Model):
         return localtime(self.created_at).strftime('%d.%m.%Y %H:%M')
 
     def get_approved_at_in_str(self):
-        return localtime(self.approved_at).strftime('%d.%m.%Y %H:%M')
+        if self.approved_at:
+            return localtime(self.approved_at).strftime('%d.%m.%Y %H:%M')
+        return None
 
     def get_closed_at_in_str(self):
-        return localtime(self.closed_at).strftime('%d.%m.%Y %H:%M')
+        if self.closed_at:
+            return localtime(self.closed_at).strftime('%d.%m.%Y %H:%M')
+        return None
 
 
 class PhotoCarContract(models.Model):
@@ -400,3 +405,9 @@ class Fine(models.Model):
 
     def get_datetime_in_str(self):
         return localtime(self.datetime).strftime('%d.%m.%Y %H:%M')
+
+    def get_short_info(self):
+        text = f'{self.get_datetime_in_str()} - {self.amount} руб. '
+        if self.car:
+            text += str(self.car.license_plate[:-3])
+        return text
