@@ -17,7 +17,8 @@ from django.utils.timezone import now
 from general_utils.utils import get_verbose_date, get_text_about_car
 from general_utils.constants import GENDER_CHOICES
 from tgbot.models import User
-from tgbot.handlers.contract import static_text, keyboard_utils, manage_data
+from tgbot.handlers.contract import (static_text, keyboard_utils, manage_data,
+                                     utils)
 
 from rentcars.utils.contracts import create_contract
 from rentcars.models import Contract, PhotoCarContract
@@ -26,15 +27,12 @@ ACCEPT = 'ACCEPT_PD'
 GETTING_PHOTO_CAR = 'GETTING_PHOTO_CAR'
 
 
-def start_contract(update: Update, context: CallbackContext) -> str:
+def start_contract(update: Update, context: CallbackContext) -> None:
     """When getting command /contract."""
     u = User.get_user(update, context)
 
-    # If contracts with current user does exists
-    # Send remaining time of the contract
-    """if u.contracts.exists():
-        valid_contracts = u.contracts.filter(closed_at__gte=now().date())"""
     active_contract = u.get_active_contract()
+
     if active_contract:
         # When photos of car in contract does not exists
         if not active_contract.car_photos.all().exists():
@@ -47,8 +45,9 @@ def start_contract(update: Update, context: CallbackContext) -> str:
                 text=text,
                 reply_markup=keyboard_utils.get_photo_cntrct_keyboard()
             )
-            return ConversationHandler.END
+            return
 
+        # When exists active contract with car photos
         days = (active_contract.closed_at - now()).days
         text = f'До конца действия договора осталось {days} дней.'
         if active_contract.car:
@@ -57,10 +56,13 @@ def start_contract(update: Update, context: CallbackContext) -> str:
             )
         update.message.reply_text(
             text=text,
-            reply_markup=keyboard_utils.get_contract_menu_keyboard(),
+            reply_markup=keyboard_utils.get_contract_main_menu_keyboard(),
         )
-        return ConversationHandler.END
+        return
 
+    # Active contract does not exists
+
+    # Personal data of user is exist -> ready to create a contract
     if hasattr(u, 'personal_data'):
         update.message.reply_text(text='Ваши персональные данные известны. ')
 
@@ -72,14 +74,13 @@ def start_contract(update: Update, context: CallbackContext) -> str:
             reply_markup=keyboard_utils.get_pd_accept_decline_keyboard(),
         )
 
-        return ACCEPT
+        return
 
+    # The user's personal data is unknown
     context.bot.send_message(
         chat_id=u.user_id,
         text=static_text.PERSONAL_DATA_NOT_EXISTS
     )
-
-    return ConversationHandler.END
 
 
 def get_finish_personal_data(user: User) -> str:
@@ -105,13 +106,14 @@ def contract_menu_handler(update: Update,
     u = User.get_user(update, context)
 
     current_text = update.effective_message.text
+
     if data == manage_data.GET_INFO_ABOUT_MY_CAR:
         active_contract = u.get_active_contract()
         if not active_contract.car:
             try:
                 query.edit_message_text(
                     text=static_text.CONTRACT_NOT_EXISTS_CAR,
-                    reply_markup=keyboard_utils.get_contract_menu_keyboard()
+                    reply_markup=keyboard_utils.get_contract_main_menu_keyboard()
                 )
             except error.BadRequest:
                 return
@@ -122,10 +124,34 @@ def contract_menu_handler(update: Update,
             query.edit_message_text(
                 text=text,
                 parse_mode=ParseMode.HTML,
-                reply_markup=keyboard_utils.get_contract_menu_keyboard(),
+                reply_markup=keyboard_utils.get_contract_main_menu_keyboard(),
             )
         except error.BadRequest:
             return
+    # Menu about contract with curren user
+    elif data == manage_data.ABOUT_CONTRACT_MENU:
+        active_contract = u.get_active_contract()
+        created_at = active_contract.get_created_at_in_str()
+        approved_at = active_contract.get_approved_at_in_str()
+        closed_at = active_contract.get_closed_at_in_str()
+        if not approved_at:
+            approved_at = 'Договор не подтвержден'
+            closed_at = 'Договор не подтвержден'
+        if active_contract.car:
+            car_name = active_contract.car.get_short_info()
+        else:
+            car_name = 'Машина не назначена'
+        text = static_text.ABOUT_CONTRACT_MENU_TEXT.format(
+            created_at=created_at,
+            approved_at=approved_at,
+            closed_at=closed_at,
+            car_name=car_name,
+        )
+        query.edit_message_text(
+            text=text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=keyboard_utils.get_contract_contract_menu_keyboard()
+        )
     # Main menu of user's fines
     elif data == manage_data.MY_FINES_MENU:
         # Calculate all fines and unpaid_fines
@@ -148,25 +174,34 @@ def contract_menu_handler(update: Update,
     # TODO: Добавить просмотр всех штрафов, оплаченных, неоплаченных и отметка
     elif data == manage_data.TO_MAIN_MENU:
         query.edit_message_reply_markup(
-            reply_markup=keyboard_utils.get_contract_menu_keyboard()
+            reply_markup=keyboard_utils.get_contract_main_menu_keyboard()
         )
     elif data == manage_data.REMOVE_KEYBOARD:
         query.edit_message_text(text=current_text)
 
-    return ConversationHandler.END
 
-
-def download_existing_contract_handler(update: Update,
-                                       context: CallbackContext) -> str:
-    """Send existing contract with current user"""
-    u = User.get_user(update, context)
-    current_text = update.effective_message.text
+def contract_commands_handler(update: Update,
+                              context: CallbackContext) -> str or None:
     query = update.callback_query
     data = query.data
+    u = User.get_user(update, context)
 
-    current_contract = u.get_active_contract()
+    current_text = update.effective_message.text
 
-    if data == manage_data.DOWNLOAD_CONTRACT_FILE:
+    if data == manage_data.PD_IS_CORRECT:
+        u = User.get_user(update, context)
+        query.edit_message_text(
+            query.message.text
+        )
+        create_save_send_contract(u, context)
+    elif data == manage_data.PD_IS_WRONG:
+        query.edit_message_text(
+            text=static_text.PERSONAL_DATA_WRONG,
+            parse_mode=ParseMode.HTML
+        )
+
+    elif data == manage_data.DOWNLOAD_CONTRACT_FILE:
+        current_contract = u.get_active_contract()
         query.edit_message_text(
             text=current_text + '\n\nСейчас отправлю договор.'
         )
@@ -176,51 +211,75 @@ def download_existing_contract_handler(update: Update,
             filename=current_contract.file.name
         )
     elif data == manage_data.DOWNLOAD_CONTRACT_PHOTOS:
+        current_contract = u.get_active_contract()
         contract_photos = current_contract.car_photos.all()
         query.edit_message_text(
             text=(current_text + f'\n\n'
                                  f'Сейчас отправлю все {len(contract_photos)} '
                                  f'фотографий.')
         )
+        send_contract_photos_to_user(u, contract_photos, context)
 
-        # Create list of InputMediaPhoto for sending images as album
-        media = [
-            InputMediaPhoto(photo.file_id) if photo.file_id
-            else InputMediaPhoto(photo.image)
-            for photo in contract_photos
-        ]
-
-        # Maximum 10 InputMediaPhoto in one message
-        if len(media) // 10 < 1:
-            # Send all <10 photos to user
-            context.bot.send_media_group(
-                chat_id=u.user_id,
-                media=media,
-                timeout=1000,
+    elif data == manage_data.MY_ALL_FINES:
+        limit = 30
+        all_fines = u.get_user_fines(limit=limit)
+        if all_fines:
+            text_all_fines = utils.get_text_with_fines(all_fines)
+            text = static_text.MY_ALL_FINES_LIMIT.format(
+                limit=limit,
+                text_all_fines=text_all_fines
             )
         else:
-            # Send all photos to User
-            # as multiple messages with albums of 10 images
-            current_media = []
-            while media:
-                if len(current_media) < 10:
-                    current_media.append(media.pop())
-                if len(current_media) == 10:
-                    context.bot.send_media_group(
-                        chat_id=u.user_id,
-                        media=current_media,
-                        timeout=1000,
-                    )
-                    current_media.clear()
+            text = static_text.MY_ALL_FINES_DOES_NOT_EXISTS
 
-            if current_media:
+        try:
+            query.edit_message_text(
+                text=text,
+                reply_markup=keyboard_utils.get_my_fines_menu_keyboard()
+            )
+        except error.BadRequest:
+            return
+
+
+def send_contract_photos_to_user(u: User, contract_photos,
+                                 context: CallbackContext):
+    """Send car's photos of contract with current user."""
+    # Create list of InputMediaPhoto for sending images as album
+    media = [
+        InputMediaPhoto(photo.file_id) if photo.file_id
+        else InputMediaPhoto(photo.image)
+        for photo in contract_photos
+    ]
+
+    # Maximum 10 InputMediaPhoto in one message
+    if len(media) // 10 < 1:
+        # Send all <10 photos to user
+        context.bot.send_media_group(
+            chat_id=u.user_id,
+            media=media,
+            timeout=1000,
+        )
+    else:
+        # Send all photos to User
+        # as multiple messages with albums of 10 images
+        current_media = []
+        while media:
+            if len(current_media) < 10:
+                current_media.append(media.pop())
+            if len(current_media) == 10:
                 context.bot.send_media_group(
                     chat_id=u.user_id,
                     media=current_media,
                     timeout=1000,
                 )
+                current_media.clear()
 
-    return ConversationHandler.END
+        if current_media:
+            context.bot.send_media_group(
+                chat_id=u.user_id,
+                media=current_media,
+                timeout=1000,
+            )
 
 
 def getting_photos_car_start_handler(update: Update,
@@ -310,12 +369,6 @@ def create_save_send_contract(u: User,
         text='Сейчас пришлю договор. Его надо будет распечатать и подписать.'
     )
 
-    """
-    Or else:
-    filename=(
-                u.personal_data.last_name + ' ' + u.personal_data.first_name +
-                ' ' + get_verbose_date(contr.created_at) + '.docx')
-    """
     context.bot.send_document(
         chat_id=u.user_id,
         document=contr.file,
@@ -329,7 +382,7 @@ def create_save_send_contract(u: User,
 
     name_user = (f'{u.personal_data.last_name} {u.personal_data.first_name} '
                  f'{u.personal_data.middle_name}')
-    contract_closed_at = get_verbose_date(contr.closed_at)
+    contract_closed_at = contr.get_closed_at_in_str()
     text_for_moderators = (
         f'Сформирован новый договор с {name_user}.\n'
         f'Срок действия договора - до {contract_closed_at}.'
@@ -352,7 +405,7 @@ def accept_pd_handler(update: Update, context: CallbackContext) -> str:
     query = update.callback_query
     data = query.data
 
-    if data == manage_data.CORRECT:
+    if data == manage_data.PD_IS_CORRECT:
         u = User.get_user(update, context)
         query.edit_message_text(
             query.message.text
@@ -361,7 +414,7 @@ def accept_pd_handler(update: Update, context: CallbackContext) -> str:
 
         return ConversationHandler.END
 
-    elif data == manage_data.WRONG:
+    elif data == manage_data.PD_IS_WRONG:
         query.edit_message_text(
             text=static_text.PERSONAL_DATA_WRONG,
             parse_mode=ParseMode.HTML
@@ -375,26 +428,15 @@ def cancel_handler(update: Update, context: CallbackContext) -> int:
     return ConversationHandler.END
 
 
-def get_conversation_handler_for_contract():
-    """Return Conversation handler for /contract"""
+def get_conversation_handler_get_contract_car_photos():
+    """Return Conversation handler for getting car photos of contract."""
     conv_handler = ConversationHandler(
         entry_points=[
-            CommandHandler('contract', start_contract),
-            CallbackQueryHandler(
-                contract_menu_handler,
-                pattern=f'^{manage_data.BASE_FOR_CONTRACT_MENU}'),
-            CallbackQueryHandler(
-                download_existing_contract_handler,
-                pattern=f'^{manage_data.BASE_FOR_DOWNLOAD_CONTRACT}'),
             CallbackQueryHandler(
                 getting_photos_car_start_handler,
-                pattern=f'^{manage_data.SEND_PHOTOS_CAR_CONTRACT}$')
+                pattern=f'^{manage_data.GET_PHOTOS_CAR_CONTRACT}$')
         ],
         states={
-            ACCEPT: [
-                CallbackQueryHandler(accept_pd_handler,
-                                     pattern=f'^{manage_data.BASE_FOR_ACCEPT}')
-            ],
             GETTING_PHOTO_CAR: [
                 MessageHandler(Filters.photo, getting_photos_car_handler),
                 MessageHandler(Filters.text(['Готово']),
