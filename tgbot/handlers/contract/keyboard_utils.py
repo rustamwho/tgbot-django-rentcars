@@ -20,7 +20,7 @@ def get_photo_cntrct_keyboard():
         [
             InlineKeyboardButton(
                 text='⬆️ Загрузить фотографии машины 📷',
-                callback_data=manage_data.SEND_PHOTOS_CAR_CONTRACT)
+                callback_data=manage_data.GET_PHOTOS_CAR_CONTRACT)
         ],
         [
             InlineKeyboardButton(
@@ -36,17 +36,11 @@ def get_photo_cntrct_keyboard():
     return InlineKeyboardMarkup(buttons)
 
 
-def get_contract_menu_keyboard():
+def get_contract_main_menu_keyboard():
     buttons = [
         [
-            InlineKeyboardButton(
-                text='⬇️ Скачать фотографии машины 📷️',
-                callback_data=manage_data.DOWNLOAD_CONTRACT_PHOTOS)
-        ],
-        [
-            InlineKeyboardButton(
-                text='⬇️ Скачать договор 📝',
-                callback_data=manage_data.DOWNLOAD_CONTRACT_FILE)
+            InlineKeyboardButton(text='📝 Договор 📝',
+                                 callback_data=manage_data.ABOUT_CONTRACT_MENU)
         ],
         [
             InlineKeyboardButton(
@@ -63,6 +57,27 @@ def get_contract_menu_keyboard():
         [
             InlineKeyboardButton('Закрыть ✅',
                                  callback_data=manage_data.REMOVE_KEYBOARD)
+        ]
+    ]
+
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_contract_contract_menu_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text='⬇️ Скачать фотографии машины 📷️',
+                callback_data=manage_data.DOWNLOAD_CONTRACT_PHOTOS)
+        ],
+        [
+            InlineKeyboardButton(
+                text='⬇️ Скачать договор 📝',
+                callback_data=manage_data.DOWNLOAD_CONTRACT_FILE)
+        ],
+        [
+            InlineKeyboardButton('Назад ⬅️',
+                                 callback_data=manage_data.TO_MAIN_MENU)
         ]
     ]
 
@@ -95,9 +110,9 @@ def get_my_fines_menu_keyboard():
 def get_pd_accept_decline_keyboard():
     buttons = [[
         InlineKeyboardButton(text='Договор ✅',
-                             callback_data=manage_data.CORRECT),
+                             callback_data=manage_data.PD_IS_CORRECT),
         InlineKeyboardButton(text='Ошибка ❌',
-                             callback_data=manage_data.WRONG)
+                             callback_data=manage_data.PD_IS_WRONG)
     ]]
 
     return InlineKeyboardMarkup(buttons)
