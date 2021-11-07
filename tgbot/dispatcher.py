@@ -26,6 +26,7 @@ from tgbot.handlers.personal_data import handlers_edit_pd as pd_edit_handlers
 from tgbot.handlers.personal_data import handlers_init_pd as pd_init_handlers
 
 from tgbot.handlers.admin import manage_data as admin_manage_data
+from tgbot.handlers.contract import manage_data as contract_manage_data
 from tgbot.handlers.personal_data.manage_data import BASE_FOR_PD_MENU
 from tgbot.handlers.onboarding.manage_data import SECRET_LEVEL_BUTTON
 
@@ -57,7 +58,18 @@ def setup_dispatcher(dp):
     # dp.add_handler(CommandHandler('export_users', admin_handlers.export_users))
 
     # contract
-    dp.add_handler(contract_handlers.get_conversation_handler_for_contract())
+    dp.add_handler(CommandHandler('contract',
+                                  contract_handlers.start_contract))
+    dp.add_handler(
+        CallbackQueryHandler(
+            contract_handlers.contract_menu_handler,
+            pattern=f'^{contract_manage_data.BASE_FOR_CONTRACT_MENU}'))
+    dp.add_handler(
+        CallbackQueryHandler(
+            contract_handlers.contract_commands_handler,
+            pattern=f'^{contract_manage_data.BASE_FOR_CONTRACT_COMMANDS}'))
+    dp.add_handler(
+        contract_handlers.get_conversation_handler_get_contract_car_photos())
 
     # personal data
     dp.add_handler(CommandHandler(
