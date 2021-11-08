@@ -86,7 +86,19 @@ class User(CreateUpdateTracker):
             return self.contracts.get(closed_at__gte=now())
         return None
 
-    def get_user_fines(self, limit: int = None):
+    def get_user_all_fines(self, limit: int = None):
         if self.fines.exists():
             return self.fines.all()[:limit] if limit else self.fines.all()
+        return None
+
+    def get_user_fines_count(self, is_paid: bool = None):
+        """Return count of user's paid or unpaid fines."""
+        if is_paid in (True, False):
+            return self.fines.filter(is_paid=is_paid).count()
+        return self.fines.count()
+
+    def get_user_paid_or_unpaid_fines(self, is_paid: bool):
+        """Return paid or unpaid fines."""
+        if self.fines.exists():
+            return self.fines.filter(is_paid=is_paid)
         return None
