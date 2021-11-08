@@ -43,6 +43,13 @@ ABOUT_CONTRACT_MENU_TEXT = ('<b>Ваш договор:</b>\n'
 MY_FINES_MENU_TEXT = ('Ваши штрафы:\n'
                       'Всего: {all_fines_count}\n'
                       'Не оплачено: {unpaid_fines_count}')
-MY_ALL_FINES_LIMIT = ('Ваши последние {limit} штрафов:\n'
-                      '{text_all_fines}\n')
-MY_ALL_FINES_DOES_NOT_EXISTS = 'У вас нет штрафов'
+MY_ALL_FINES_LIMIT = ('За все время у вас {all_fines_count} штрафов\n'
+                      'Последние {limit} (сначала неоплаченные):\n'
+                      '{text_fines}\n')
+MY_ALL_FINES_DOES_NOT_EXISTS = 'У вас нет штрафов 🎉'
+MY_PAID_FINES = ('Ваши ОПЛАЧЕННЫЕ штрафы:\n'
+                 '{text_fines}')
+MY_PAID_FINES_DOES_NOT_EXISTS = 'У вас нет оплаченных штрафов 🤔'
+MY_UNPAID_FINES = ('Ваши НЕОПЛАЧЕННЫЕ штрафы:\n'
+                   '{text_fines}')
+MY_UNPAID_FINES_DOES_NOT_EXISTS = 'У вас нет неоплаченных штрафов 🎉'
