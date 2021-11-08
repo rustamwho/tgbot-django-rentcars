@@ -155,13 +155,8 @@ def contract_menu_handler(update: Update,
     # Main menu of user's fines
     elif data == manage_data.MY_FINES_MENU:
         # Calculate all fines and unpaid_fines
-        all_fines = u.get_user_fines()
-        if not all_fines:
-            all_fines_count, unpaid_fines_count = 0, 0
-        else:
-            all_fines_count = len(all_fines)
-            unpaid_fines_count = sum(
-                1 for fine in all_fines if not fine.is_paid)
+        all_fines_count = u.get_user_fines_count()
+        unpaid_fines_count = u.get_user_fines_count(is_paid=False)
 
         text = static_text.MY_FINES_MENU_TEXT.format(
             all_fines_count=all_fines_count,
@@ -171,7 +166,6 @@ def contract_menu_handler(update: Update,
             text=text,
             reply_markup=keyboard_utils.get_my_fines_menu_keyboard()
         )
-    # TODO: Добавить просмотр всех штрафов, оплаченных, неоплаченных и отметка
     elif data == manage_data.TO_MAIN_MENU:
         query.edit_message_reply_markup(
             reply_markup=keyboard_utils.get_contract_main_menu_keyboard()
@@ -221,16 +215,48 @@ def contract_commands_handler(update: Update,
         send_contract_photos_to_user(u, contract_photos, context)
 
     elif data == manage_data.MY_ALL_FINES:
-        limit = 30
-        all_fines = u.get_user_fines(limit=limit)
+        limit = 10
+        all_fines = u.get_user_all_fines(limit=limit)
+        all_fines_count = len(all_fines)
         if all_fines:
-            text_all_fines = utils.get_text_with_fines(all_fines)
+            text_fines = utils.get_text_with_fines(all_fines)
             text = static_text.MY_ALL_FINES_LIMIT.format(
+                all_fines_count=all_fines_count,
                 limit=limit,
-                text_all_fines=text_all_fines
+                text_fines=text_fines,
             )
         else:
             text = static_text.MY_ALL_FINES_DOES_NOT_EXISTS
+
+        try:
+            query.edit_message_text(
+                text=text,
+                reply_markup=keyboard_utils.get_my_fines_menu_keyboard()
+            )
+        except error.BadRequest:
+            return
+    elif data == manage_data.MY_PAID_FINES:
+        paid_fines = u.get_user_paid_or_unpaid_fines(is_paid=True)
+        if paid_fines:
+            text_fines = utils.get_text_with_fines(paid_fines)
+            text = static_text.MY_PAID_FINES.format(text_fines=text_fines)
+        else:
+            text = static_text.MY_PAID_FINES_DOES_NOT_EXISTS
+
+        try:
+            query.edit_message_text(
+                text=text,
+                reply_markup=keyboard_utils.get_my_fines_menu_keyboard()
+            )
+        except error.BadRequest:
+            return
+    elif data == manage_data.MY_UNPAID_FINES:
+        unpaid_fines = u.get_user_paid_or_unpaid_fines(is_paid=False)
+        if unpaid_fines:
+            text_fines = utils.get_text_with_fines(unpaid_fines)
+            text = static_text.MY_UNPAID_FINES.format(text_fines=text_fines)
+        else:
+            text = static_text.MY_UNPAID_FINES_DOES_NOT_EXISTS
 
         try:
             query.edit_message_text(
