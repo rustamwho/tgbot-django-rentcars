@@ -21,7 +21,7 @@ from tgbot.handlers.contract import (static_text, keyboard_utils, manage_data,
                                      utils)
 
 from rentcars.utils.contracts import create_contract
-from rentcars.models import Contract, PhotoCarContract
+from rentcars.models import Contract, PhotoCarContract, Fine
 
 ACCEPT = 'ACCEPT_PD'
 GETTING_PHOTO_CAR = 'GETTING_PHOTO_CAR'
@@ -119,7 +119,7 @@ def contract_menu_handler(update: Update,
                 return
             return
         car = active_contract.car
-        text = '<b>Ваша машина:</b>:\n' + get_text_about_car(car)
+        text = '<b>Ваша машина:</b>\n' + get_text_about_car(car)
         try:
             query.edit_message_text(
                 text=text,
@@ -166,6 +166,22 @@ def contract_menu_handler(update: Update,
             text=text,
             reply_markup=keyboard_utils.get_my_fines_menu_keyboard()
         )
+    elif data == manage_data.SET_FINE_IS_PAID_MENU:
+        unpaid_fines = u.get_user_paid_or_unpaid_fines(is_paid=False)
+        if unpaid_fines:
+            query.edit_message_text(
+                text=static_text.SET_FINE_IS_PAID_MENU_TEXT,
+                reply_markup=keyboard_utils.get_set_fine_is_paid_keyboard(
+                    unpaid_fines)
+            )
+        else:
+            try:
+                query.edit_message_text(
+                    text=static_text.MY_UNPAID_FINES_DOES_NOT_EXISTS,
+                    reply_markup=keyboard_utils.get_my_fines_menu_keyboard()
+                )
+            except error.BadRequest:
+                return
     elif data == manage_data.TO_MAIN_MENU:
         query.edit_message_reply_markup(
             reply_markup=keyboard_utils.get_contract_main_menu_keyboard()
@@ -197,7 +213,7 @@ def contract_commands_handler(update: Update,
     elif data == manage_data.DOWNLOAD_CONTRACT_FILE:
         current_contract = u.get_active_contract()
         query.edit_message_text(
-            text=current_text + '\n\nСейчас отправлю договор.'
+            text=current_text + '\n\n👀 Сейчас отправлю договор.'
         )
         context.bot.send_document(
             chat_id=u.user_id,
@@ -209,15 +225,15 @@ def contract_commands_handler(update: Update,
         contract_photos = current_contract.car_photos.all()
         query.edit_message_text(
             text=(current_text + f'\n\n'
-                                 f'Сейчас отправлю все {len(contract_photos)} '
-                                 f'фотографий.')
+                                 f'👀 Сейчас отправлю все '
+                                 f'{len(contract_photos)} фотографий.')
         )
         send_contract_photos_to_user(u, contract_photos, context)
 
     elif data == manage_data.MY_ALL_FINES:
         limit = 10
         all_fines = u.get_user_all_fines(limit=limit)
-        all_fines_count = len(all_fines)
+        all_fines_count = len(all_fines) if all_fines else 0
         if all_fines:
             text_fines = utils.get_text_with_fines(all_fines)
             text = static_text.MY_ALL_FINES_LIMIT.format(
@@ -265,6 +281,19 @@ def contract_commands_handler(update: Update,
             )
         except error.BadRequest:
             return
+    elif data.startswith(manage_data.BASE_FOR_SET_FINE_IS_PAID):
+        fine_id = int(data.split('_')[-1])
+        fine = Fine.objects.get(id=fine_id)
+        fine.is_paid = True
+        fine.save()
+
+        text = (f'Штраф:\n'
+                f'{fine.amount} руб. {fine.get_datetime_in_str()}\n\n'
+                f'✅ Оплачен ✅')
+        query.edit_message_text(
+            text=text,
+            reply_markup=keyboard_utils.get_my_fines_menu_keyboard()
+        )
 
 
 def send_contract_photos_to_user(u: User, contract_photos,
