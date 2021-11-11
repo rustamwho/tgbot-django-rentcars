@@ -67,7 +67,7 @@ def setup_dispatcher(dp):
     dp.add_handler(
         CallbackQueryHandler(
             contract_handlers.contract_commands_handler,
-            pattern=f'^{contract_manage_data.BASE_FOR_CONTRACT_COMMANDS}'))
+            pattern=f'^{contract_manage_data.BASE_CONTRACT_COMMANDS}'))
     dp.add_handler(
         contract_handlers.get_conversation_handler_get_contract_car_photos())
 

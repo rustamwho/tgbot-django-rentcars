@@ -86,7 +86,7 @@ def get_text_all_arendators():
     Return text with arendators and the remaining days of the contract with
     them.
     """
-    arendators = User.objects.filter(contracts__closed_at__gte=now().date())
+    arendators = User.objects.filter(contracts__closed_at__gte=now())
 
     text = 'Действующие договоры:\n'
     for i, u in enumerate(arendators, 1):

@@ -112,6 +112,8 @@ def get_cars_menu_keyboard():
             InlineKeyboardButton('🚘 Арендованные машины 🔒',
                                  callback_data=manage_data.GET_RENTED_CARS)
         ],
+        # TODO: Добавить "У кого была машина?" в определенную дату
+        # Учесть, что в одну дату машина может быть у нескольких
         [
             InlineKeyboardButton('Назад ⬅️', callback_data=manage_data.BACK)
         ]
