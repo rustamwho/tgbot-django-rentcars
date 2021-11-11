@@ -2,6 +2,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from general_utils.constants import GENDER_CHOICES
 from tgbot.handlers.contract import manage_data
+from rentcars.models import Fine
 
 
 def get_keyboard_for_gender():
@@ -99,11 +100,34 @@ def get_my_fines_menu_keyboard():
                                  callback_data=manage_data.MY_UNPAID_FINES)
         ],
         [
+            InlineKeyboardButton(
+                text='✔️ Отметить оплаченный',
+                callback_data=manage_data.SET_FINE_IS_PAID_MENU)
+        ],
+        [
             InlineKeyboardButton('Назад ⬅️',
                                  callback_data=manage_data.TO_MAIN_MENU)
         ]
     ]
 
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_set_fine_is_paid_keyboard(unpaid_fines: list[Fine]):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                f'🚔 {fine.amount} руб -- {fine.get_datetime_in_str()}',
+                callback_data=(manage_data.BASE_FOR_SET_FINE_IS_PAID +
+                               str(fine.id))
+            )
+        ]
+        for fine in unpaid_fines
+    ]
+    buttons.append([
+        InlineKeyboardButton('Назад ⬅️',
+                             callback_data=manage_data.MY_FINES_MENU)
+    ])
     return InlineKeyboardMarkup(buttons)
 
 
