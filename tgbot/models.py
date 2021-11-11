@@ -99,6 +99,7 @@ class User(CreateUpdateTracker):
 
     def get_user_paid_or_unpaid_fines(self, is_paid: bool):
         """Return paid or unpaid fines."""
-        if self.fines.exists():
-            return self.fines.filter(is_paid=is_paid)
+        fines = self.fines.filter(is_paid=is_paid)
+        if fines.exists():
+            return fines
         return None
