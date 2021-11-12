@@ -311,6 +311,20 @@ class Contract(models.Model):
             return localtime(self.closed_at).strftime('%d.%m.%Y %H:%M')
         return None
 
+    def get_short_info(self):
+        pd = self.user.personal_data
+        return (f'{pd.last_name} {pd.first_name[0]}.{pd.middle_name[0]}. '
+                f'от {self.get_approved_at_in_str()} '
+                f'({self.car.license_plate[:-3]})')
+
+    def get_full_name_user(self):
+        pd = self.user.personal_data
+        return f'{pd.last_name} {pd.first_name[0]}.{pd.middle_name[0]}.'
+
+    @classmethod
+    def get_active_contracts(cls):
+        return cls.objects.filter(closed_at__gte=now())
+
 
 class PhotoCarContract(models.Model):
     image = models.ImageField(
