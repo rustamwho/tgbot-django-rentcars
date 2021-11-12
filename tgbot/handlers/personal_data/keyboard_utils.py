@@ -9,7 +9,7 @@ def get_start_initialization_pd_keyboard():
     buttons = [
         [
             InlineKeyboardButton(
-                'Заполнить данные 🛠',
+                'Заполнить 🛠',
                 callback_data=manage_data.START_INITIALIZATION_PD),
             InlineKeyboardButton('Закрыть ✅',
                                  callback_data=manage_data.REMOVE_KEYBOARD)
