@@ -113,6 +113,14 @@ def admin_menu_handler(update: Update, context) -> None:
             reply_markup=keyboard_utils.get_set_fine_is_paid_keyboard(
                 unpaid_fines)
         )
+    elif data == manage_data.CLOSE_CONTRACT_MENU:
+        active_contracts = Contract.get_active_contracts()
+        query.edit_message_text(
+            text=static_text.CLOSE_CONTRACT_MENU_TEXT,
+            reply_markup=keyboard_utils.get_close_contract_menu_keyboard(
+                active_contracts
+            )
+        )
     elif data == manage_data.BACK:
         query.edit_message_reply_markup(
             keyboard_utils.get_admin_main_menu_keyboard()
@@ -352,6 +360,48 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
         )
 
         return FINE_DATE
+
+    # Close active contract
+    elif data.startswith(manage_data.BASE_FOR_CLOSE_CONTRACT):
+        contract_id = int(data.split('_')[-1])
+        active_contract = Contract.objects.get(id=contract_id)
+        created_at = active_contract.get_created_at_in_str()
+        approved_at = active_contract.get_approved_at_in_str()
+        closed_at = active_contract.get_closed_at_in_str()
+        user_name = active_contract.get_full_name_user()
+        car_name = active_contract.car.get_short_info()
+
+        text = static_text.ABOUT_CONTRACT.format(
+            user_name=user_name,
+            created_at=created_at,
+            approved_at=approved_at,
+            car_name=car_name
+        )
+        text += static_text.CLOSED_AT_CONTRACT.format(closed_at=closed_at)
+        text += static_text.ASK_ACCEPT_CLOSE_CONTRACT
+        keyboard = keyboard_utils.get_accept_close_contract_menu_keyboard(
+            active_contract
+        )
+
+        query.edit_message_text(
+            text=text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=keyboard
+        )
+    elif data.startswith(manage_data.BASE_FOR_ACCEPT_CLOSE_CONTRACT):
+        contract_id = int(data.split('_')[-1])
+        active_contract = Contract.objects.get(id=contract_id)
+        active_contract.closed_at = now()
+        active_contract.save()
+
+        text = current_text.split('Конец аренды')[0]
+        text += f'Конец аренды: {active_contract.get_closed_at_in_str()}\n\n'
+        text += static_text.CONTRACT_IS_CLOSED
+
+        query.edit_message_text(
+            text=text,
+            parse_mode=ParseMode.HTML,
+        )
 
 
 def fine_date_handler(update: Update, context: CallbackContext):
