@@ -49,7 +49,10 @@ def start_contract(update: Update, context: CallbackContext) -> None:
 
         # When exists active contract with car photos
         days = (active_contract.closed_at - now()).days
-        text = f'До конца действия договора осталось {days} дней.'
+        if active_contract.is_approved:
+            text = f'До конца действия договора осталось {days} дней.'
+        else:
+            text = '⏳ Договор не подтвержден администратором'
         if active_contract.car:
             text += static_text.CONTRACT_EXISTS_CAR.format(
                 car_info=active_contract.car.get_short_info()
@@ -79,6 +82,7 @@ def start_contract(update: Update, context: CallbackContext) -> None:
     # The user's personal data is unknown
     context.bot.send_message(
         chat_id=u.user_id,
+        parse_mode=ParseMode.HTML,
         text=static_text.PERSONAL_DATA_NOT_EXISTS
     )
 
