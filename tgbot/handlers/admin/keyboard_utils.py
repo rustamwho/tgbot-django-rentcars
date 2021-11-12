@@ -2,7 +2,7 @@ from itertools import zip_longest
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from rentcars.models import Car, Fine
+from rentcars.models import Car, Fine, Contract
 from tgbot.handlers.admin import manage_data
 from general_utils.utils import get_verbose_date
 
@@ -27,6 +27,12 @@ def get_admin_main_menu_keyboard():
             InlineKeyboardButton(
                 '❓Неподтвержденные договоры❓',
                 callback_data=manage_data.GET_UNAPPROVED_CONTRACTS)
+        ],
+        [
+            InlineKeyboardButton(
+                '❌ Завершить договор ❌',
+                callback_data=manage_data.CLOSE_CONTRACT_MENU
+            )
         ],
         [
             InlineKeyboardButton('✅ Закрыть ✅',
@@ -205,4 +211,39 @@ def get_set_fine_is_paid_keyboard(unpaid_fines: list[Fine]):
         InlineKeyboardButton('Назад ⬅️',
                              callback_data=manage_data.FINES_MENU)
     ])
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_close_contract_menu_keyboard(active_contracts: list[Contract]):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text='📝 ' + contract.get_short_info(),
+                callback_data=(manage_data.BASE_FOR_CLOSE_CONTRACT +
+                               str(contract.id))
+            )
+        ]
+        for contract in active_contracts
+    ]
+    buttons.append([
+        InlineKeyboardButton('Назад ⬅️',
+                             callback_data=manage_data.BACK)
+    ])
+
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_accept_close_contract_menu_keyboard(active_contract: Contract):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                '❌ Завершить',
+                callback_data=(manage_data.BASE_FOR_ACCEPT_CLOSE_CONTRACT +
+                               str(active_contract.id))
+            ),
+            InlineKeyboardButton('Назад ⬅️',
+                                 callback_data=manage_data.CLOSE_CONTRACT_MENU)
+        ]
+    ]
+
     return InlineKeyboardMarkup(buttons)
