@@ -90,20 +90,40 @@ def get_approve_contract_keyboard(contract_id: int,
                             str(contract_id))),
             ],
             [
+                InlineKeyboardButton(
+                    '❌ Удалить договор',
+                    callback_data=(manage_data.BASE_FOR_DELETE_CONTRACT +
+                                   str(contract_id)
+                                   )
+                )
+            ],
+            [
                 InlineKeyboardButton('Потом ↩️',
                                      callback_data=manage_data.DELETE_MESSAGE)
             ]
         ]
     else:
-        buttons = [[
-            InlineKeyboardButton(
-                'Назначить 🚘',
-                callback_data=(
-                        manage_data.SET_CAR_TO_CONTRACT_MENU +
-                        str(contract_id))),
-            InlineKeyboardButton('Потом ↩️',
-                                 callback_data=manage_data.DELETE_MESSAGE)
-        ]]
+        buttons = [
+            [
+                InlineKeyboardButton(
+                    'Назначить 🚘',
+                    callback_data=(
+                            manage_data.SET_CAR_TO_CONTRACT_MENU +
+                            str(contract_id))),
+            ],
+            [
+                InlineKeyboardButton(
+                    '❌ Удалить договор',
+                    callback_data=(manage_data.BASE_FOR_DELETE_CONTRACT +
+                                   str(contract_id)
+                                   )
+                )
+            ],
+            [
+                InlineKeyboardButton('Потом ↩️',
+                                     callback_data=manage_data.DELETE_MESSAGE)
+            ]
+        ]
 
     return InlineKeyboardMarkup(buttons)
 
