@@ -183,3 +183,21 @@ def get_pd_close_person_keyboard():
     ]
 
     return InlineKeyboardMarkup(buttons)
+
+
+def get_exist_active_contract_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton(
+                'Номер телефона 📞',
+                callback_data=manage_data.EDIT_PD_PHONE_NUMBER),
+            InlineKeyboardButton('Почта 📧',
+                                 callback_data=manage_data.EDIT_PD_EMAIL)
+        ],
+        [
+            InlineKeyboardButton('Закрыть ✅',
+                                 callback_data=manage_data.REMOVE_KEYBOARD)
+        ]
+    ]
+
+    return InlineKeyboardMarkup(buttons)
