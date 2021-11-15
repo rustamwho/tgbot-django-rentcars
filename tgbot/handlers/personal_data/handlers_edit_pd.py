@@ -58,9 +58,17 @@ def main_menu_edit_pd_handler(update: Update, context: CallbackContext):
     query = update.callback_query
     data = query.data
     if data in (manage_data.MENU_EDIT_PD_MAIN, manage_data.BACK):
+        u = User.get_user(update, context)
+        if not u.get_active_contract():
+            query.edit_message_text(
+                text=current_text,
+                reply_markup=keyboard_utils.get_all_types_pd_keyboard(),
+                parse_mode=ParseMode.HTML
+            )
+            return
         query.edit_message_text(
             text=current_text,
-            reply_markup=keyboard_utils.get_all_types_pd_keyboard(),
+            reply_markup=keyboard_utils.get_exist_active_contract_keyboard(),
             parse_mode=ParseMode.HTML
         )
     elif data == manage_data.MENU_EDIT_PD_PD:
