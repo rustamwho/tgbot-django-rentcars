@@ -1,8 +1,6 @@
 import datetime
 import io
 
-from pytils.translit import slugify
-
 from telegram import ParseMode, Update, error
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.ext import (MessageHandler, ConversationHandler, Filters,
@@ -11,16 +9,13 @@ from telegram import InputMediaPhoto
 
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files import File
-from django.forms.models import model_to_dict
 from django.utils.timezone import now
 
-from general_utils.utils import get_verbose_date, get_text_about_car
-from general_utils.constants import GENDER_CHOICES
+from general_utils.utils import get_text_about_car, get_finish_personal_data
 from tgbot.models import User
 from tgbot.handlers.contract import (static_text, keyboard_utils, manage_data,
                                      utils)
 
-from rentcars.utils.contracts import create_contract
 from rentcars.models import Contract, PhotoCarContract, Fine
 
 ACCEPT = 'ACCEPT_PD'
@@ -34,6 +29,13 @@ def start_contract(update: Update, context: CallbackContext) -> None:
     active_contract = u.get_active_contract()
 
     if active_contract:
+        # If admin not set car into contract (Contract file not created)
+        if not active_contract.file:
+            update.message.reply_text(
+                text=static_text.CONTRACT_NOT_EXISTS_FILE
+            )
+            return
+
         # When photos of car in contract does not exists
         if not active_contract.car_photos.all().exists():
             text = static_text.CONTRACT_EXISTS_NO_PHOTO
@@ -70,7 +72,7 @@ def start_contract(update: Update, context: CallbackContext) -> None:
         update.message.reply_text(text='Ваши персональные данные известны. ')
 
         # Send all Personal Data with keyboard for accepting
-        text = get_finish_personal_data(u)
+        text = 'Ваши данные:\n' + get_finish_personal_data(u)
         update.effective_message.reply_text(
             text=text,
             parse_mode=ParseMode.HTML,
@@ -85,22 +87,6 @@ def start_contract(update: Update, context: CallbackContext) -> None:
         parse_mode=ParseMode.HTML,
         text=static_text.PERSONAL_DATA_NOT_EXISTS
     )
-
-
-def get_finish_personal_data(user: User) -> str:
-    """Beautiful formatting text with personal data's."""
-
-    pd = model_to_dict(user.personal_data, exclude='user')
-
-    pd['gender'] = GENDER_CHOICES[pd['gender']][1]
-    pd['birthday'] = datetime.date.strftime(pd['birthday'], '%d.%m.%Y')
-    pd['passport_date_of_issue'] = datetime.date.strftime(
-        pd['passport_date_of_issue'], '%d.%m.%Y'
-    )
-
-    text = static_text.PERSONAL_DATA.format(**pd)
-
-    return text
 
 
 def contract_menu_handler(update: Update,
@@ -203,11 +189,30 @@ def contract_commands_handler(update: Update,
     current_text = update.effective_message.text
 
     if data == manage_data.PD_IS_CORRECT:
-        u = User.get_user(update, context)
         query.edit_message_text(
             query.message.text
         )
-        create_save_send_contract(u, context)
+        new_contract = Contract(
+            user=u,
+            closed_at=now().replace(year=now().year + 1)
+        )
+        new_contract.save()
+
+        pd = u.personal_data
+        user_name = f'{pd.last_name} {pd.first_name[0]}.{pd.middle_name[0]}.'
+        text_for_admins = static_text.USER_WANT_CREATE_CONTRACT.format(
+            user_name=user_name
+        )
+
+        admins = User.objects.filter(is_admin=True)
+
+        for admin in admins:
+            context.bot.send_message(
+                chat_id=admin.user_id,
+                text=text_for_admins
+            )
+
+        # create_save_send_contract(u, context)
     elif data == manage_data.PD_IS_WRONG:
         query.edit_message_text(
             text=static_text.PERSONAL_DATA_WRONG,
@@ -402,83 +407,6 @@ def stop_getting_car_photos_handler(update: Update,
     )
 
     return ConversationHandler.END
-
-
-def create_save_send_contract(u: User,
-                              context: CallbackContext) -> None:
-    """Create contract .docx with user and save Contract object."""
-    # Create new contract file
-    new_contract = create_contract(u)
-
-    # Create Contract object with new contract file
-    new_contract_io = io.BytesIO()
-    new_contract.save(new_contract_io)
-    new_contract_io.seek(0)
-    contr = Contract(
-        user=u,
-        file=File(new_contract_io,
-                  name=(slugify(u.personal_data.last_name) +
-                        str(now().date()) + '.docx')),
-        closed_at=now().replace(year=now().year + 1)
-    )
-    contr.save()
-
-    context.bot.send_message(
-        chat_id=u.user_id,
-        text='Сейчас пришлю договор. Его надо будет распечатать и подписать.'
-    )
-
-    context.bot.send_document(
-        chat_id=u.user_id,
-        document=contr.file,
-        filename=contr.file.name
-    )
-
-    admins = User.objects.filter(is_admin=True)
-
-    if not admins:
-        return
-
-    name_user = (f'{u.personal_data.last_name} {u.personal_data.first_name} '
-                 f'{u.personal_data.middle_name}')
-    contract_closed_at = contr.get_closed_at_in_str()
-    text_for_moderators = (
-        f'Сформирован новый договор с {name_user}.\n'
-        f'Срок действия договора - до {contract_closed_at}.'
-    )
-    contr = u.get_active_contract()
-    for admin in admins:
-        context.bot.send_message(
-            chat_id=admin.user_id,
-            text=text_for_moderators
-        )
-        context.bot.send_document(
-            chat_id=admin.user_id,
-            document=contr.file,
-            filename=contr.file.name
-        )
-
-
-def accept_pd_handler(update: Update, context: CallbackContext) -> str:
-    """After touch accept or decline buttons of pd."""
-    query = update.callback_query
-    data = query.data
-
-    if data == manage_data.PD_IS_CORRECT:
-        u = User.get_user(update, context)
-        query.edit_message_text(
-            query.message.text
-        )
-        create_save_send_contract(u, context)
-
-        return ConversationHandler.END
-
-    elif data == manage_data.PD_IS_WRONG:
-        query.edit_message_text(
-            text=static_text.PERSONAL_DATA_WRONG,
-            parse_mode=ParseMode.HTML
-        )
-        return ConversationHandler.END
 
 
 def cancel_handler(update: Update, context: CallbackContext) -> int:
