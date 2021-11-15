@@ -6,7 +6,7 @@ from django.forms.models import model_to_dict
 from docxtpl import DocxTemplate
 
 from tgbot.models import User
-from rentcars.models import PersonalData
+from rentcars.models import PersonalData, Car
 from general_utils.utils import get_verbose_date
 
 
@@ -29,21 +29,24 @@ def get_pd_string(pd: PersonalData) -> str:
     return result
 
 
-def create_contract(user: User) -> DocxTemplate:
+def create_contract(user: User, car: Car) -> DocxTemplate:
     """
     Return new contract with user.
     See python-docx-template documentation for more information about creating
     templates.
     """
+    # TODO: Добавить дату
 
-    pd_string = get_pd_string(user.personal_data)
+    user_pd_string = get_pd_string(user.personal_data)
+    owner_pd_string = get_pd_string(car.owner)
 
     context = model_to_dict(
         user.personal_data,
         fields=['phone_number', 'email', 'close_person_name',
                 'close_person_phone', 'close_person_address']
     )
-    context['pd_string'] = pd_string
+    context['user_pd_string'] = user_pd_string
+    context['owner_pd_string'] = owner_pd_string
     context['year'] = datetime.date.today().year
     context['user_id'] = user.user_id
 
