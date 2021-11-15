@@ -4,6 +4,8 @@ from typing import Callable
 
 from django.utils.timezone import now
 from django.core.exceptions import ValidationError
+from django.core.files.temp import NamedTemporaryFile
+from django.core.files import File
 
 from telegram import ParseMode, Update, error
 from telegram.error import BadRequest, Unauthorized
@@ -20,7 +22,7 @@ from tgbot.models import User
 from rentcars.models import Contract, PersonalData, Car, Fine
 from rentcars import validators
 
-CAR, FINE_DATE, FINE_TIME, FINE_AMOUNT = range(1, 5)
+CAR, FINE_DATE, FINE_TIME, FINE_AMOUNT, FINE_SCREEN = range(1, 6)
 
 
 def admin_only_handler(func: Callable):
@@ -274,8 +276,19 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
         query.edit_message_text(
             text=(current_text +
                   f'\n\nНазначена машина: {current_car.license_plate}'),
-            reply_markup=keyboard_utils.get_approve_contract_keyboard(
-                contract_id=contract_id)
+        )
+
+        # Create contract file and send to user and admin
+        utils.create_and_save_contract_file(
+            contract=current_contract,
+            admin_id=chat_id,
+            context=context
+        )
+    elif data.startswith(manage_data.BASE_FOR_DELETE_CONTRACT):
+        contract_id = int(data.split('_')[-1])
+        Contract.objects.get(id=contract_id).delete()
+        query.edit_message_text(
+            text=(current_text+'\n\n✅ Договор УДАЛЕН ✅')
         )
     elif data == manage_data.GET_ALL_CARS:
         all_cars = Car.objects.all()
@@ -403,6 +416,17 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
             parse_mode=ParseMode.HTML,
         )
 
+        text = text.replace('❗ Договор:', '❗ Внимание ❗')
+        text = text.replace('✅ Договор завершен ✅',
+                            '✅ Ваш договор ЗАВЕРШЕН ✅')
+        try:
+            context.bot.send_message(
+                chat_id=active_contract.user.user_id,
+                text=text,
+            )
+        except Unauthorized:
+            return
+
 
 def fine_date_handler(update: Update, context: CallbackContext):
     input_date = update.message.text
@@ -452,11 +476,32 @@ def fine_amount_handler(update: Update, context: CallbackContext):
         return FINE_AMOUNT
 
     context.user_data[FINE_AMOUNT] = input_amount
+
+    update.message.reply_text(
+        text=static_text.ASK_SCREENSHOT_FINE,
+        parse_mode=ParseMode.HTML
+    )
+
+    return FINE_SCREEN
+
+
+def fine_screenshot_handler(update: Update, context: CallbackContext):
+    # Temporary file for caching image before create a PhotoCarContract obj
+    img_temp = NamedTemporaryFile(delete=True)
+
+    file = update.message.photo[-1].get_file()
+    path = file.download(out=img_temp)
+
+    img_temp.flush()
+
+    # Create new Fine and save downloaded image in it
     new_fine = Fine(
         car=context.user_data[CAR],
         datetime=(f'{context.user_data[FINE_DATE]} '
                   f'{context.user_data[FINE_TIME]}'),
         amount=context.user_data[FINE_AMOUNT],
+        screenshot=File(img_temp),
+        screenshot_id=file.file_id
     )
     new_fine.save()
 
@@ -481,10 +526,20 @@ def fine_amount_handler(update: Update, context: CallbackContext):
         amount=new_fine.amount,
     )
     try:
-        context.bot.send_message(
-            chat_id=new_fine.user.user_id,
-            text=text_for_user,
-        )
+        # Send about fine and screenshot to user
+        if new_fine.screenshot:
+            screen = (new_fine.screenshot_id if new_fine.screenshot_id
+                      else new_fine.screenshot)
+            context.bot.send_photo(
+                chat_id=new_fine.user.user_id,
+                photo=screen,
+                caption=text_for_user
+            )
+        else:
+            context.bot.send_message(
+                chat_id=new_fine.user.user_id,
+                text=text_for_user,
+            )
     except BadRequest:
         is_message_to_user_sent = False
     except Unauthorized:
@@ -536,6 +591,9 @@ def get_conversation_handler_for_fine():
             ],
             FINE_AMOUNT: [
                 MessageHandler(Filters.text, fine_amount_handler)
+            ],
+            FINE_SCREEN: [
+                MessageHandler(Filters.photo, fine_screenshot_handler)
             ]
         },
         fallbacks=[
