@@ -10,7 +10,8 @@ from general_utils.constants import GENDER_CHOICES
 from tgbot.models import User
 
 import rentcars.validators as cstm_validators
-from rentcars.utils.paths import car_photos_path, contract_photos_path
+from rentcars.utils.paths import (car_photos_path, contract_photos_path,
+                                  fine_screens_path)
 from rentcars.utils.utils import transliterate_license_plate
 
 
@@ -21,8 +22,9 @@ class PersonalData(CreateUpdateTracker):
     user = models.OneToOneField(
         User,
         on_delete=models.PROTECT,
-        primary_key=True,
-        related_name='personal_data'
+        related_name='personal_data',
+        null=True,
+        blank=True,
     )
 
     first_name = models.CharField(
@@ -96,17 +98,24 @@ class PersonalData(CreateUpdateTracker):
     close_person_name = models.CharField(
         max_length=50,
         verbose_name='Близкий человек',
-        validators=[cstm_validators.close_person_name_validator]
+        validators=[cstm_validators.close_person_name_validator],
+        null=True,
+        blank=True,
     )
     close_person_phone = models.CharField(
         max_length=12,
         validators=[cstm_validators.phone_number_validator],
-        verbose_name='Номер близкого человека'
+        verbose_name='Номер близкого человека',
+        null=True,
+        blank=True,
+
     )
     close_person_address = models.CharField(
         max_length=256,
         verbose_name='Адрес места жительства',
-        validators=[cstm_validators.address_validator]
+        validators=[cstm_validators.address_validator],
+        null=True,
+        blank=True,
     )
 
     class Meta:
@@ -116,7 +125,7 @@ class PersonalData(CreateUpdateTracker):
     def save(self, *args, **kwargs):
         if self.phone_number.startswith('8'):
             self.phone_number = '+7' + self.phone_number[1:]
-        if self.close_person_phone.startswith('8'):
+        if self.close_person_phone and self.close_person_phone.startswith('8'):
             self.close_person_phone = '+7' + self.close_person_phone[1:]
         if isinstance(self.birthday, str):
             self.birthday = datetime.datetime.strptime(self.birthday,
@@ -128,11 +137,12 @@ class PersonalData(CreateUpdateTracker):
         self.last_name = self.last_name.capitalize()
         self.first_name = self.first_name.capitalize()
         self.middle_name = self.middle_name.capitalize()
-        self.close_person_name = self.close_person_name.title()
+        if self.close_person_name:
+            self.close_person_name = self.close_person_name.title()
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.last_name
+        return f'{self.last_name} {self.first_name} {self.last_name}'
 
 
 class Car(models.Model):
@@ -200,6 +210,13 @@ class Car(models.Model):
         validators=[cstm_validators.sts_number_validator],
         verbose_name='Номер СТС',
         help_text='Номер свидетельства о регистрации ТС'
+    )
+    owner = models.ForeignKey(
+        PersonalData,
+        on_delete=models.PROTECT,
+        related_name='cars',
+        verbose_name='Владелец авто',
+        help_text='Выберите из списка владельца авто'
     )
 
     def save(self, *args, **kwargs):
@@ -285,6 +302,7 @@ class Contract(models.Model):
     )
     closed_at = models.DateTimeField(
         verbose_name='Дата завершения действия договора',
+        null=True
     )
 
     def __str__(self):
@@ -360,6 +378,18 @@ class Fine(models.Model):
     )
     amount = models.PositiveIntegerField(
         verbose_name='Сумма штрафа',
+    )
+    screenshot = models.ImageField(
+        verbose_name='Скриншот штрафа',
+        upload_to=fine_screens_path,
+        blank=True,
+        null=True,
+    )
+    screenshot_id = models.CharField(
+        verbose_name='ID скриншота на серверах Telegram',
+        max_length=250,
+        blank=True,
+        null=True,
     )
     user = models.ForeignKey(
         User,
