@@ -1,16 +1,19 @@
 import io
 import csv
 
+from pytils.translit import slugify
+
+from telegram.ext.callbackcontext import CallbackContext
 from datetime import datetime
 from django.db.models import QuerySet
 from django.utils.timezone import now
+from django.core.files import File
 from typing import Dict
 
 from tgbot.models import User
 
-from rentcars.models import Contract, Fine, PersonalData
-
-from general_utils.utils import get_verbose_date
+from rentcars.models import Contract, Fine, PersonalData, Car
+from rentcars.utils.contracts import create_contract
 
 
 def _get_csv_from_qs_values(queryset: QuerySet[Dict], filename: str = 'users'):
@@ -171,3 +174,44 @@ def get_text_unpaid_fines():
                 f'{fine.get_datetime_in_str()}\n')
 
     return text
+
+
+def create_and_save_contract_file(contract: Contract, admin_id: int,
+                                  context: CallbackContext) -> None:
+    """Create contract .docx with user and save Contract object."""
+    u = contract.user
+    # Create new contract file
+    new_contract = create_contract(contract.user, contract.car)
+
+    # Create Contract object with new contract file
+    contract_file_io = io.BytesIO()
+    new_contract.save(contract_file_io)
+    contract_file_io.seek(0)
+    contract.file = File(contract_file_io,
+                         name=(slugify(contract.user.personal_data.last_name) +
+                               str(now().date()) + '.docx'))
+
+    contract.save()
+
+    context.bot.send_document(
+        chat_id=u.user_id,
+        document=contract.file,
+        filename=contract.file.name,
+        caption=('❗ Сформирован договор. Его надо будет распечатать '
+                 'и подписать.')
+    )
+
+    pd = contract.user.personal_data
+    user_name = f'{pd.last_name} {pd.first_name[0]}.{pd.middle_name[0]}.'
+    contract_closed_at = contract.get_closed_at_in_str()
+    text_for_admin = (
+        f'❗ Сформирован новый договор с {user_name}.\n'
+        f'📍 Срок действия договора - до {contract_closed_at}.'
+    )
+    contract = u.get_active_contract()
+    context.bot.send_document(
+        chat_id=admin_id,
+        document=contract.file,
+        filename=contract.file.name,
+        caption=text_for_admin
+    )
