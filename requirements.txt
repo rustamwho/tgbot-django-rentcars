@@ -25,7 +25,7 @@ dj-database-url
 
 # Distributed tasks
 celery~=5.1.2
-# redis
+redis
 django-celery-beat
 
 # Telegram
