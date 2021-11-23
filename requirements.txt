@@ -24,9 +24,9 @@ psycopg2-binary
 dj-database-url
 
 # Distributed tasks
-# celery~=5.1.2
+celery~=5.1.2
 # redis
-# django-celery-beat
+django-celery-beat
 
 # Telegram
 python-telegram-bot
