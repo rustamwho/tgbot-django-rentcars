@@ -2,6 +2,7 @@ import os
 import datetime
 
 from django.conf import settings
+from django.utils.timezone import now
 from django.forms.models import model_to_dict
 from docxtpl import DocxTemplate
 
@@ -35,7 +36,6 @@ def create_contract(user: User, car: Car) -> DocxTemplate:
     See python-docx-template documentation for more information about creating
     templates.
     """
-    # TODO: Добавить дату
 
     user_pd_string = get_pd_string(user.personal_data)
     owner_pd_string = get_pd_string(car.owner)
@@ -47,8 +47,9 @@ def create_contract(user: User, car: Car) -> DocxTemplate:
     )
     context['user_pd_string'] = user_pd_string
     context['owner_pd_string'] = owner_pd_string
-    context['year'] = datetime.date.today().year
+    context['year'] = now().year
     context['user_id'] = user.user_id
+    context['date'] = get_verbose_date(now().replace(year=now().year + 1))
 
     doc = DocxTemplate(
         os.path.join(settings.DOCX_TEMPLATES_DIR, 'contract_template.docx'))
