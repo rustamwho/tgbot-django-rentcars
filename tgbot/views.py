@@ -24,7 +24,8 @@ class TelegramBotWebhookView(View):
             # Don't forget to run it and & Redis (message broker for Celery)! 
             # Read Procfile for details
             # You can run all of these services via docker-compose.yml
-            process_telegram_event.delay(json.loads(request.body))
+            # process_telegram_event.delay(json.loads(request.body))
+            process_telegram_event(json.loads(request.body))
 
         # e.g. remove buttons, typing event
         return JsonResponse({"ok": "POST request processed"})
