@@ -1,5 +1,6 @@
 """
-    Celery tasks. Some of them will be launched periodically from admin panel via django-celery-beat
+    Celery tasks. Some of them will be launched periodically from admin panel
+    via django-celery-beat
 """
 
 import time
