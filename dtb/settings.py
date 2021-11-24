@@ -10,16 +10,13 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Load env variables from file
 dotenv_file = BASE_DIR / ".env"
 if os.path.isfile(dotenv_file):
     dotenv.load_dotenv(dotenv_file)
 
-
 # Path fo docx templates
 DOCX_TEMPLATES_DIR = BASE_DIR / 'docx_templates'
-
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv(
@@ -27,13 +24,13 @@ SECRET_KEY = os.getenv(
     'x%#3&%giwv8f0+%r946en7z&d@9*rc$sl0qoql56xr%bh^w2mj',
 )
 
-if os.environ.get('DJANGO_DEBUG', default=False) in ['True', 'true', '1', True]:
+if os.environ.get('DJANGO_DEBUG', default=False) in ['True', 'true', '1',
+                                                     True]:
     DEBUG = True
 else:
     DEBUG = False
 
-ALLOWED_HOSTS = ["*",]  # since Telegram uses a lot of IPs for webhooks
-
+ALLOWED_HOSTS = ["*", ]  # since Telegram uses a lot of IPs for webhooks
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -99,12 +96,12 @@ TEMPLATES = [
 WSGI_APPLICATION = 'dtb.wsgi.application'
 ASGI_APPLICATION = 'dtb.asgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(conn_max_age=600, default="sqlite:///db.sqlite3"),
+    'default': dj_database_url.config(conn_max_age=600,
+                                      default="sqlite:///db.sqlite3"),
 }
 
 # Password validation
@@ -125,7 +122,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
@@ -134,7 +130,6 @@ TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
@@ -145,7 +140,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media')
+MEDIA_ROOT = '/media'  # in dokku /var/lib/dokku/data/storage/<myapp>
 
 # -----> CELERY
 REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
@@ -157,7 +152,6 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_DEFAULT_QUEUE = 'default'
-
 
 # -----> TELEGRAM
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -171,7 +165,6 @@ if TELEGRAM_TOKEN is None:
 TELEGRAM_LOGS_CHAT_ID = os.getenv("TELEGRAM_LOGS_CHAT_ID", default=None)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
-
 
 # -----> SENTRY
 # import sentry_sdk
@@ -192,4 +185,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 #     # django.contrib.auth) you may enable sending PII data.
 #     send_default_pii=True
 # )
-
