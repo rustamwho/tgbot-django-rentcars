@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def index(request):
-    return JsonResponse({"error": "sup hacker"})
+    return JsonResponse({"error": "Ты не туда зашел"})
 
 
 class TelegramBotWebhookView(View):
@@ -26,7 +26,6 @@ class TelegramBotWebhookView(View):
             # You can run all of these services via docker-compose.yml
             process_telegram_event.delay(json.loads(request.body))
 
-        # TODO: there is a great trick to send action in webhook response
         # e.g. remove buttons, typing event
         return JsonResponse({"ok": "POST request processed"})
     

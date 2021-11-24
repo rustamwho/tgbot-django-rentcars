@@ -142,7 +142,7 @@ class PersonalData(CreateUpdateTracker):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f'{self.last_name} {self.first_name} {self.last_name}'
+        return f'{self.last_name} {self.first_name} {self.middle_name}'
 
 
 class Car(models.Model):
