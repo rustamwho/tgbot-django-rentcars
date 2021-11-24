@@ -36,7 +36,10 @@ class UserAdmin(admin.ModelAdmin):
     actions = ['broadcast']
 
     def broadcast(self, request, queryset):
-        """ Select users via check mark in django-admin panel, then select "Broadcast" to send message"""
+        """
+        Select users via check mark in django-admin panel,
+        then select "Broadcast" to send message.
+        """
         user_ids = queryset.values_list('user_id',
                                         flat=True).distinct().iterator()
         if 'apply' in request.POST:
@@ -53,8 +56,10 @@ class UserAdmin(admin.ModelAdmin):
             else:
                 broadcast_message.delay(text=broadcast_message_text,
                                         user_ids=list(user_ids))
-                self.message_user(request,
-                                  f"Broadcasting of {len(queryset)} messages has been started")
+                self.message_user(
+                    request,
+                    f"Broadcasting of {len(queryset)} "
+                    f"messages has been started")
 
             return HttpResponseRedirect(request.get_full_path())
         else:
