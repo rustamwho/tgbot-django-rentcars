@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 
     # 3rd party apps
     # 'django_celery_beat',
-    'debug_toolbar',
+    # 'debug_toolbar',
     'django_cleanup.apps.CleanupConfig',
 
     # local apps
