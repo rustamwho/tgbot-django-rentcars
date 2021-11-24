@@ -1,11 +1,8 @@
-import datetime
-
-from django.utils import timezone
-from telegram import ParseMode, Update
+from telegram import Update
 from telegram.ext.callbackcontext import CallbackContext
 
 from tgbot.handlers.onboarding import static_text
-from tgbot.handlers.utils.info import extract_user_data_from_update
+
 from tgbot.models import User
 
 
@@ -27,23 +24,4 @@ def command_start(update: Update, context: CallbackContext) -> None:
 def answer_to_unknown(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(
         text=static_text.ANSWER_TO_UNKNOWN
-    )
-
-
-def secret_level(update: Update, context) -> None:
-    # callback_data: SECRET_LEVEL_BUTTON variable from manage_data.py
-    """ Pressed 'secret_level_button_text' after /start command"""
-    user_id = extract_user_data_from_update(update)['user_id']
-    text = static_text.unlock_secret_room.format(
-        user_count=User.objects.count(),
-        active_24=User.objects.filter(
-            updated_at__gte=timezone.now() - datetime.timedelta(
-                hours=24)).count()
-    )
-
-    context.bot.edit_message_text(
-        text=text,
-        chat_id=user_id,
-        message_id=update.callback_query.message.message_id,
-        parse_mode=ParseMode.HTML
     )

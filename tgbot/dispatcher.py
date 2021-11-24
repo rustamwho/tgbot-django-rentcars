@@ -16,11 +16,10 @@ from telegram.ext import (
 from dtb.celery import app  # event processing in async mode
 from dtb.settings import TELEGRAM_TOKEN, DEBUG
 
-from tgbot.handlers.utils import files, error
+from tgbot.handlers.utils import error
 
 from tgbot.handlers.admin import handlers as admin_handlers
 from tgbot.handlers.onboarding import handlers as onboarding_handlers
-from tgbot.handlers.broadcast_message import handlers as broadcast_handlers
 from tgbot.handlers.contract import handlers as contract_handlers
 from tgbot.handlers.personal_data import handlers_edit_pd as pd_edit_handlers
 from tgbot.handlers.personal_data import handlers_init_pd as pd_init_handlers
@@ -28,21 +27,16 @@ from tgbot.handlers.personal_data import handlers_init_pd as pd_init_handlers
 from tgbot.handlers.admin import manage_data as admin_manage_data
 from tgbot.handlers.contract import manage_data as contract_manage_data
 from tgbot.handlers.personal_data.manage_data import BASE_FOR_PD_MENU
-from tgbot.handlers.onboarding.manage_data import SECRET_LEVEL_BUTTON
-
-from tgbot.handlers.broadcast_message.manage_data import \
-    CONFIRM_DECLINE_BROADCAST
-from tgbot.handlers.broadcast_message.static_text import broadcast_command
 
 
 def setup_dispatcher(dp):
     """
-    Adding handlers for events from Telegram
+    Adding handlers for events from Telegram.
     """
-    # onboarding
+    # For start bot
     dp.add_handler(CommandHandler("start", onboarding_handlers.command_start))
 
-    # admin commands
+    # Admin commands
     dp.add_handler(CommandHandler("admin", admin_handlers.admin_start))
     dp.add_handler(CommandHandler("stats", admin_handlers.stats))
     dp.add_handler(
@@ -55,9 +49,7 @@ def setup_dispatcher(dp):
             pattern=f'^{admin_manage_data.BASE_ADMIN_COMMANDS}'))
     dp.add_handler(admin_handlers.get_conversation_handler_for_fine())
 
-    # dp.add_handler(CommandHandler('export_users', admin_handlers.export_users))
-
-    # contract
+    # Contract
     dp.add_handler(CommandHandler('contract',
                                   contract_handlers.start_contract))
     dp.add_handler(
@@ -71,7 +63,7 @@ def setup_dispatcher(dp):
     dp.add_handler(
         contract_handlers.get_conversation_handler_get_contract_car_photos())
 
-    # personal data
+    # Personal data
     dp.add_handler(CommandHandler(
         'personal_data',
         pd_edit_handlers.get_my_personal_data_handler))
@@ -81,31 +73,12 @@ def setup_dispatcher(dp):
     dp.add_handler(pd_edit_handlers.get_pd_edit_conversation_handler())
     dp.add_handler(pd_init_handlers.get_conversation_handler_for_init_pd())
 
-    # secret level
-    dp.add_handler(CallbackQueryHandler(onboarding_handlers.secret_level,
-                                        pattern=f"^{SECRET_LEVEL_BUTTON}"))
-
-    # broadcast message
-    dp.add_handler(
-        MessageHandler(Filters.regex(rf'^{broadcast_command}(/s)?.*'),
-                       broadcast_handlers.broadcast_command_with_message)
-    )
-    dp.add_handler(
-        CallbackQueryHandler(broadcast_handlers.broadcast_decision_handler,
-                             pattern=f"^{CONFIRM_DECLINE_BROADCAST}")
-    )
-
-    # files
-    dp.add_handler(MessageHandler(
-        Filters.animation, files.show_file_id,
-    ))
-
     # Unknown messages
     dp.add_handler(
         MessageHandler(Filters.all, onboarding_handlers.answer_to_unknown)
     )
 
-    # handling errors
+    # Handling errors
     dp.add_error_handler(error.send_stacktrace_to_tg_chat)
 
     # EXAMPLES FOR HANDLERS
@@ -120,7 +93,7 @@ def setup_dispatcher(dp):
 
 
 def run_pooling():
-    """ Run bot in pooling mode """
+    """ Run bot in pooling mode. """
     updater = Updater(TELEGRAM_TOKEN, use_context=True)
 
     dp = updater.dispatcher
@@ -160,16 +133,12 @@ def set_up_commands(bot_instance: Bot) -> None:
             'personal_data': 'My personal data 🗂',
             'cancel': 'Cancel the current operation ❌',
             'admin': 'Show admin info ℹ️',
-            # 'broadcast': 'Broadcast message 📨',
-            # 'export_users': 'Export users.csv 👥',
         },
         'ru': {
             'contract': 'Договор 📝',
             'personal_data': 'Мои данные 🗂',
             'cancel': 'Отменить текущее действие ❌',
             'admin': 'Администрирование ℹ️',
-            # 'broadcast': 'Отправить сообщение 📨',
-            # 'export_users': 'Экспорт users.csv 👥',
         }
     }
 
