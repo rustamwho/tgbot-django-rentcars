@@ -425,7 +425,8 @@ def get_conversation_handler_get_contract_car_photos():
         ],
         states={
             GETTING_PHOTO_CAR: [
-                MessageHandler(Filters.photo, getting_photos_car_handler),
+                MessageHandler(Filters.photo, getting_photos_car_handler,
+                               run_async=True),
                 MessageHandler(Filters.text(['Готово']),
                                stop_getting_car_photos_handler)
             ]
