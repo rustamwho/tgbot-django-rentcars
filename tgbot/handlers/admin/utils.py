@@ -205,7 +205,7 @@ def create_and_save_contract_file(contract: Contract, admin_id: int,
     user_name = f'{pd.last_name} {pd.first_name[0]}.{pd.middle_name[0]}.'
     contract_closed_at = contract.get_closed_at_in_str()
     text_for_admin = (
-        f'❗ Сформирован новый договор с {user_name}.\n'
+        f'❗ Сформирован новый договор с {user_name}\n'
         f'📍 Срок действия договора - до {contract_closed_at}.'
     )
     contract = u.get_active_contract()

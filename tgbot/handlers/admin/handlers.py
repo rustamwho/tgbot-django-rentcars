@@ -175,7 +175,7 @@ def send_unapproved_contracts(admin_id: int,
         arendator_pd: PersonalData = unapproved_contract.user.personal_data
         arendator_full_name = (f'{arendator_pd.last_name} '
                                f'{arendator_pd.first_name} '
-                               f'{arendator_pd.last_name}')
+                               f'{arendator_pd.middle_name}')
         created_at = get_verbose_date(unapproved_contract.created_at)
         closed_at = get_verbose_date(unapproved_contract.closed_at)
         text = static_text.TEXT_FOR_APPROVE_CONTRACT.format(
