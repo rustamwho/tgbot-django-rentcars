@@ -141,6 +141,7 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = '/media'  # in dokku /var/lib/dokku/data/storage/<myapp>
+# MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media')
 
 # -----> CELERY
 REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
