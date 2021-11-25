@@ -29,7 +29,7 @@ class TelegramBotWebhookView(View):
             # When use .delay, messages are received by different workers
             # And another worker doesn't know about current conversation
             # e.g, when we receiving many images from user (contract photos)
-            process_telegram_event.delay(json.loads(request.body))
+            process_telegram_event(json.loads(request.body))
 
         # e.g. remove buttons, typing event
         return JsonResponse({"ok": "POST request processed"})
