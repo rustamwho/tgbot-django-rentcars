@@ -1,6 +1,9 @@
 from django.contrib import admin, auth
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
+from django_celery_beat.models import (PeriodicTask, IntervalSchedule,
+                                       CrontabSchedule, SolarSchedule,
+                                       ClockedSchedule)
 
 from dtb.settings import DEBUG
 
@@ -12,8 +15,13 @@ from tgbot.handlers.broadcast_message.utils import _send_message
 
 from rentcars.models import PersonalData
 
+
 admin.site.site_header = 'Администрирование Elit Transfer'
 admin.site.unregister(auth.models.Group)
+# Delete django celery beat from admin panel
+for dcb_model in (IntervalSchedule, PeriodicTask, CrontabSchedule,
+                  SolarSchedule, ClockedSchedule):
+    admin.site.unregister(dcb_model)
 
 
 class QuestionInline(admin.StackedInline):

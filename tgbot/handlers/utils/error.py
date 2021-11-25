@@ -27,8 +27,10 @@ def send_stacktrace_to_tg_chat(update: Update,
                                          context.error.__traceback__)
     tb_string = ''.join(tb_list)
 
-    # Build the message with some markup and additional information about what happened.
-    # You might need to add some logic to deal with messages longer than the 4096 character limit.
+    # Build the message with some markup and additional information
+    # about what happened.
+    # You might need to add some logic to deal with messages longer than the
+    # 4096 character limit.
     message = (
         f'An exception was raised while handling an update\n'
         f'<pre>{html.escape(tb_string)}</pre>'
