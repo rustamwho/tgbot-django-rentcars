@@ -82,11 +82,13 @@ class User(CreateUpdateTracker):
         return f"{self.first_name} {self.last_name}" if self.last_name else f"{self.first_name}"
 
     def get_active_contract(self):
+        """Return active contract with current user."""
         if self.contracts.filter(closed_at__gte=now()).exists():
             return self.contracts.get(closed_at__gte=now())
         return None
 
     def get_user_all_fines(self, limit: int = None):
+        """Return all fines of user"""
         if self.fines.exists():
             return self.fines.all()[:limit] if limit else self.fines.all()
         return None

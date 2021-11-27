@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 
 
 def russian_letters_validator(value: str) -> None:
-    """Checking that the string consists only of Russian letters"""
+    """Checking that the string consists only of Russian letters."""
     reg_validator = RegexValidator(
         regex=r'^[а-яА-Я]+$',
         message='Разрешаются только русские буквы.'
@@ -85,7 +85,7 @@ def passport_issued_by_validator(value: str):
 
 
 def address_validator(value: str) -> None:
-    """Address contains 'г.', 'ул.', 'д.'."""
+    """Address contains 'ул.', 'д.'."""
     reg_validator = RegexValidator(
         regex=r'^[а-яА-Я.,\s0-9-/№]+$',
         message='Адрес должен состоять только из русских букв, пробелов, точек'

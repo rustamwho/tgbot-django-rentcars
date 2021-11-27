@@ -1,6 +1,3 @@
-import datetime
-import io
-
 from telegram import ParseMode, Update, error
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.ext import (MessageHandler, ConversationHandler, Filters,
@@ -65,7 +62,7 @@ def start_contract(update: Update, context: CallbackContext) -> None:
         )
         return
 
-    # Active contract does not exists
+    # ---> ACTIVE CONTRACT DOES NOT EXISTS
 
     # Personal data of user is exist -> ready to create a contract
     if hasattr(u, 'personal_data'):
@@ -188,16 +185,21 @@ def contract_commands_handler(update: Update,
 
     current_text = update.effective_message.text
 
+    # ---> Creating contract
+    # When user submit personal data, starts process of creating contract
     if data == manage_data.PD_IS_CORRECT:
         query.edit_message_text(
             query.message.text
         )
+        # Create of empty contract (without file and car)
         new_contract = Contract(
             user=u,
             closed_at=now().replace(year=now().year + 1)
         )
         new_contract.save()
 
+        # Send to admin notification of a new contract and the need to set
+        # a car to this
         pd = u.personal_data
         user_name = f'{pd.last_name} {pd.first_name[0]}.{pd.middle_name[0]}.'
         text_for_admins = static_text.USER_WANT_CREATE_CONTRACT.format(
@@ -212,13 +214,15 @@ def contract_commands_handler(update: Update,
                 text=text_for_admins
             )
 
-        # create_save_send_contract(u, context)
+    # If personal data has a mistake -> go to /personal_data menu
     elif data == manage_data.PD_IS_WRONG:
         query.edit_message_text(
             text=static_text.PERSONAL_DATA_WRONG,
             parse_mode=ParseMode.HTML
         )
 
+    # ---> ABOUT CONTRACT MENU
+    # Send to user active contract with him
     elif data == manage_data.DOWNLOAD_CONTRACT_FILE:
         current_contract = u.get_active_contract()
         query.edit_message_text(
@@ -229,6 +233,7 @@ def contract_commands_handler(update: Update,
             document=current_contract.file,
             filename=current_contract.file.name
         )
+    # Send to user photos of current contract
     elif data == manage_data.DOWNLOAD_CONTRACT_PHOTOS:
         current_contract = u.get_active_contract()
         contract_photos = current_contract.car_photos.all()
@@ -239,6 +244,8 @@ def contract_commands_handler(update: Update,
         )
         send_contract_photos_to_user(u, contract_photos, context)
 
+    # ---> MY FINES MENU
+    # Show all fines of user
     elif data == manage_data.MY_ALL_FINES:
         limit = 10
         all_fines = u.get_user_all_fines(limit=limit)
@@ -260,6 +267,7 @@ def contract_commands_handler(update: Update,
             )
         except error.BadRequest:
             return
+    # Show all paid fines of current user
     elif data == manage_data.MY_PAID_FINES:
         paid_fines = u.get_user_paid_or_unpaid_fines(is_paid=True)
         if paid_fines:
@@ -275,6 +283,7 @@ def contract_commands_handler(update: Update,
             )
         except error.BadRequest:
             return
+    # Show all unpaid fines of current user
     elif data == manage_data.MY_UNPAID_FINES:
         unpaid_fines = u.get_user_paid_or_unpaid_fines(is_paid=False)
         if unpaid_fines:
@@ -290,7 +299,9 @@ def contract_commands_handler(update: Update,
             )
         except error.BadRequest:
             return
+
     elif data.startswith(manage_data.BASE_FOR_SET_FINE_IS_PAID):
+        # Setting fines as is paid
         fine_id = int(data.split('_')[-1])
         fine = Fine.objects.get(id=fine_id)
         fine.is_paid = True

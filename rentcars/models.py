@@ -61,7 +61,8 @@ class PersonalData(CreateUpdateTracker):
 
     phone_number = models.CharField(
         max_length=12,
-        validators=[cstm_validators.phone_number_validator]
+        validators=[cstm_validators.phone_number_validator],
+        verbose_name='Номер телефона'
     )
 
     passport_serial = models.CharField(
@@ -101,6 +102,8 @@ class PersonalData(CreateUpdateTracker):
         validators=[cstm_validators.close_person_name_validator],
         null=True,
         blank=True,
+        help_text=('Должен быть в формате "ИМЯ (КЕМ ПРИХОДИТСЯ)", '
+                   'например Юля (Жена)')
     )
     close_person_phone = models.CharField(
         max_length=12,
@@ -112,10 +115,11 @@ class PersonalData(CreateUpdateTracker):
     )
     close_person_address = models.CharField(
         max_length=256,
-        verbose_name='Адрес места жительства',
+        verbose_name='Адрес места жительства близкого человека',
         validators=[cstm_validators.address_validator],
         null=True,
         blank=True,
+        help_text='Адрес обязательно должен содержать "ул." и "д."'
     )
 
     class Meta:
@@ -123,10 +127,13 @@ class PersonalData(CreateUpdateTracker):
         verbose_name_plural = 'Персональные данные'
 
     def save(self, *args, **kwargs):
+        # All numbers in database saved as starts with '+7'
         if self.phone_number.startswith('8'):
             self.phone_number = '+7' + self.phone_number[1:]
         if self.close_person_phone and self.close_person_phone.startswith('8'):
             self.close_person_phone = '+7' + self.close_person_phone[1:]
+
+        # For dates from bot (received in str)
         if isinstance(self.birthday, str):
             self.birthday = datetime.datetime.strptime(self.birthday,
                                                        '%d.%m.%Y')
@@ -134,11 +141,14 @@ class PersonalData(CreateUpdateTracker):
             self.passport_date_of_issue = datetime.datetime.strptime(
                 self.passport_date_of_issue, '%d.%m.%Y'
             )
+
+        # Capitalize all names
         self.last_name = self.last_name.capitalize()
         self.first_name = self.first_name.capitalize()
         self.middle_name = self.middle_name.capitalize()
         if self.close_person_name:
             self.close_person_name = self.close_person_name.title()
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -146,23 +156,29 @@ class PersonalData(CreateUpdateTracker):
 
 
 class Car(models.Model):
+    """Data of car."""
     license_plate = models.CharField(
         max_length=9,
         validators=[cstm_validators.license_plate_validator],
         verbose_name='Регистрационный знак',
+        help_text='Регистрационный знак автомобиля должен быть в формате '
+                  '"X999XX999" (В базу сохраняется на русском языке)',
     )
     vin = models.CharField(
         max_length=17,
         validators=[cstm_validators.vin_validator],
         verbose_name='VIN',
+        help_text='VIN-номер автомобиля, состоящий из 17 символов',
     )
     model = models.CharField(
         max_length=50,
         verbose_name='Марка, модель',
+        help_text='Полное название машины, например, "Toyota Camry"',
     )
     type = models.CharField(
         max_length=50,
         verbose_name='Тип ТС',
+        help_text='Например, "Легковой"',
     )
     category = models.CharField(
         max_length=1,
@@ -184,32 +200,35 @@ class Car(models.Model):
     )
     ecological_class = models.CharField(
         max_length=20,
-        verbose_name='Экологический класс'
+        verbose_name='Экологический класс',
+        help_text='Цифра или слово, например, "ПЯТЫЙ"',
     )
     vehicle_passport_serial = models.CharField(
         max_length=4,
         validators=[cstm_validators.vehicle_passport_serial_validator],
         verbose_name='Серия ПТС',
+        help_text='Серия паспорта ТС должна быть в формате 00АА',
     )
     vehicle_passport_number = models.CharField(
         max_length=6,
         validators=[cstm_validators.passport_number_validator],
-        verbose_name='Номер ПТС'
+        verbose_name='Номер ПТС',
+        help_text='6 цифр',
     )
     max_mass = models.IntegerField(
-        verbose_name='Разрешенная max масса, кг'
+        verbose_name='Разрешенная max масса, кг',
     )
     sts_serial = models.CharField(
         max_length=4,
         validators=[cstm_validators.sts_serial_validator],
         verbose_name='Серия СТС',
-        help_text='Серия свидетельства о регистрации ТС'
+        help_text='Серия свидетельства о регистрации ТС (4 цифры)'
     )
     sts_number = models.CharField(
         max_length=6,
         validators=[cstm_validators.sts_number_validator],
         verbose_name='Номер СТС',
-        help_text='Номер свидетельства о регистрации ТС'
+        help_text='Номер свидетельства о регистрации ТС (6 цифр)'
     )
     owner = models.ForeignKey(
         PersonalData,
@@ -245,6 +264,7 @@ class Car(models.Model):
 
 
 class PhotoCar(models.Model):
+    """Model for saving of car photos."""
     image = models.ImageField(
         verbose_name='Фотографии машины',
         upload_to=car_photos_path,
@@ -266,20 +286,26 @@ class PhotoCar(models.Model):
 
 
 class Contract(models.Model):
+    """Contract with user."""
     user = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
-        related_name='contracts'
+        related_name='contracts',
+        verbose_name='Арендатор',
+        help_text='Пользователь телеграма6 нужно выбрать из списка',
     )
 
     file = models.FileField(
         verbose_name='Файл договора',
-        upload_to='contracts/files/'
+        upload_to='contracts/files/',
+        help_text='.docx файл'
     )
 
     is_approved = models.BooleanField(
         verbose_name='Подтвержден',
-        default=False
+        default=False,
+        help_text='Подтвержден ли договор администратором '
+                  '(После подтверждения машина считается арендованной)',
     )
 
     car = models.ForeignKey(
@@ -289,19 +315,21 @@ class Contract(models.Model):
         blank=True,
         null=True,
         verbose_name='Машина',
+        help_text='Арендуемая машина (Выбрать из списка)',
     )
 
     created_at = models.DateTimeField(
         auto_now_add=True,
-        verbose_name='Дата формирования договора'
+        verbose_name='Дата и время формирования договора'
     )
     approved_at = models.DateTimeField(
-        verbose_name='Дата подтверждения договора',
+        verbose_name='Дата и время подтверждения договора',
         blank=True,
         null=True,
+        help_text='Дата и время, с которого договор начинает действовать'
     )
     closed_at = models.DateTimeField(
-        verbose_name='Дата завершения действия договора',
+        verbose_name='Дата и время завершения действия договора',
         null=True
     )
 
@@ -345,6 +373,7 @@ class Contract(models.Model):
 
 
 class PhotoCarContract(models.Model):
+    """ Model for saving car's photos of contract. """
     image = models.ImageField(
         verbose_name='Фотографии машины',
         upload_to=contract_photos_path,
@@ -366,18 +395,20 @@ class PhotoCarContract(models.Model):
 
 
 class Fine(models.Model):
+    """ Fine model. """
     car = models.ForeignKey(
         Car,
         on_delete=models.CASCADE,
         related_name='fines',
         verbose_name='Машина',
+        help_text='Оштрафованная машина (выбрать из списка)',
     )
     datetime = models.DateTimeField(
         verbose_name='Дата и время штрафа',
         null=True,
     )
     amount = models.PositiveIntegerField(
-        verbose_name='Сумма штрафа',
+        verbose_name='Сумма штрафа, руб.',
     )
     screenshot = models.ImageField(
         verbose_name='Скриншот штрафа',
