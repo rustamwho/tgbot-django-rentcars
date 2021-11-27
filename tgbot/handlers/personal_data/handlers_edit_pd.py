@@ -9,13 +9,14 @@ from telegram.ext.callbackcontext import CallbackContext
 from telegram.ext import (MessageHandler, ConversationHandler, Filters,
                           CommandHandler, CallbackQueryHandler)
 
-from general_utils.constants import GENDER_CHOICES
+from general_utils.constants import GENDER_CHOICES, GENDER_CHOICES_DICT
 
 from rentcars import validators
 
 from tgbot.models import User
 from tgbot.handlers.personal_data import (static_text, keyboard_utils,
                                           manage_data)
+from general_utils.utils import get_finish_personal_data
 
 (LAST_NAME, FIRST_NAME, MIDDLE_NAME, GENDER, BIRTHDAY, EMAIL, PHONE_NUMBER,
  PASSPORT_SERIAL, PASSPORT_NUMBER, PASSPORT_ISSUED_AT, PASSPORT_ISSUED_BY,
@@ -34,15 +35,7 @@ def get_my_personal_data_handler(update: Update,
         )
         return
 
-    pd = model_to_dict(u.personal_data, exclude='user')
-
-    pd['gender'] = GENDER_CHOICES[pd['gender']][1]
-    pd['birthday'] = datetime.date.strftime(pd['birthday'], '%d.%m.%Y')
-    pd['passport_date_of_issue'] = datetime.date.strftime(
-        pd['passport_date_of_issue'], '%d.%m.%Y'
-    )
-
-    text = static_text.PERSONAL_DATA.format(**pd)
+    text = get_finish_personal_data(u)
 
     context.bot.send_message(
         chat_id=u.user_id,
@@ -203,321 +196,244 @@ def editing_pd_start_handler(update: Update, context: CallbackContext):
 
 
 """
-Handlers for editing Personal Data
+
+HANDLERS FOR EDITING PERSONAL DATA
+
 """
 
 
-def editing_last_name_handler(update: Update, context: CallbackContext):
-    text = update.message.text
+def editing_pd(update: Update, context: CallbackContext,
+               attribute: str, state: int, validator: callable = None,
+               value=None) -> int:
+    """
+    For edit of received field of personal data.
 
-    try:
-        validators.russian_letters_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return LAST_NAME
+    @param update: Update from telegram bot
+    @param context: Context from telegram bot
+    @param attribute: the attribute that needs to be changed
+    @param state: current state of conversation
+    @param validator: validator for validating input text
+    @param value: value if need only set attribute without validation
+    @return: new state (END if it`s all right, else - current state)
+    """
+    text = update.message.text if not value else None
+
+    if validator:
+        try:
+            validator(text)
+        except ValidationError as e:
+            update.message.reply_text(e.message + '\n\nПовторите ввод.')
+            return state
 
     u = User.get_user(update, context)
     pd = u.personal_data
-    pd.last_name = text
+    if value:
+        setattr(pd, attribute, value)
+    else:
+        setattr(pd, attribute, text)
     pd.save()
+
     get_my_personal_data_handler(update, context)
 
     return ConversationHandler.END
+
+
+def editing_last_name_handler(update: Update, context: CallbackContext):
+    """Get and save last name of user."""
+    new_state = editing_pd(update, context,
+                           validator=validators.russian_letters_validator,
+                           attribute='last_name',
+                           state=LAST_NAME
+                           )
+
+    return new_state
 
 
 def editing_first_name_handler(update: Update,
                                context: CallbackContext) -> int:
     """Get and save first name of user."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.russian_letters_validator,
+                           attribute='first_name',
+                           state=FIRST_NAME
+                           )
 
-    try:
-        validators.russian_letters_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return FIRST_NAME
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.first_name = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_middle_name_handler(update: Update,
                                 context: CallbackContext) -> int:
     """Get and save patronymic of user. Send hello with full name."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.russian_letters_validator,
+                           attribute='middle_name',
+                           state=MIDDLE_NAME
+                           )
 
-    try:
-        validators.russian_letters_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return MIDDLE_NAME
-
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.middle_name = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_gender_handler(update: Update, context: CallbackContext) -> int:
     """Get and save gender of user."""
     gender = int(update.callback_query.data)
     update.callback_query.edit_message_text(
-        text=f'Вы выбрали <b>ПОЛ</b> - {GENDER_CHOICES[gender][1]}',
+        text=f'Вы выбрали <b>ПОЛ</b> - {GENDER_CHOICES_DICT[gender]}',
         parse_mode=ParseMode.HTML
     )
 
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.gender = gender
-    pd.save()
-    get_my_personal_data_handler(update, context)
+    new_state = editing_pd(update, context,
+                           attribute='gender',
+                           state=GENDER,
+                           value=gender
+                           )
 
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_birthday_handler(update: Update, context: CallbackContext) -> int:
     """Get and save birthday date of user."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.birthday_date_validate,
+                           attribute='birthday',
+                           state=BIRTHDAY
+                           )
 
-    try:
-        validators.birthday_date_validate(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return BIRTHDAY
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.birthday = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_phone_number_handler(update: Update,
                                  context: CallbackContext) -> int:
     """Get and save phone number of user."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.phone_number_validator,
+                           attribute='phone_number',
+                           state=PHONE_NUMBER
+                           )
 
-    try:
-        validators.phone_number_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return PHONE_NUMBER
-
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.phone_number = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_email_handler(update: Update, context: CallbackContext) -> int:
     """Get and save email of user."""
-    text = update.message.text
+    mail_validator = EmailValidator(
+        message='Адрес электронной почты должен быть правильным. '
+                'Например, rustamwho@mail.com')
 
-    try:
-        validator = EmailValidator(
-            message='Адрес электронной почты должен быть правильным. '
-                    'Например, rustamwho@mail.com')
-        validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return EMAIL
+    new_state = editing_pd(update, context,
+                           validator=mail_validator,
+                           attribute='email',
+                           state=EMAIL
+                           )
 
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.email = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_address_registration_handler(update: Update,
                                          context: CallbackContext) -> int:
     """Receive and save registration address of user."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.address_validator,
+                           attribute='address_registration',
+                           state=ADDRESS_REGISTRATION
+                           )
 
-    try:
-        validators.address_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return ADDRESS_REGISTRATION
-
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.address_registration = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_address_residence_handler(update: Update,
                                       context: CallbackContext) -> int:
-    """Receive and save registration address of user."""
-    text = update.message.text
+    """Receive and save residence address of user."""
+    new_state = editing_pd(update, context,
+                           validator=validators.address_validator,
+                           attribute='address_of_residence',
+                           state=ADDRESS_RESIDENCE,
+                           )
 
-    try:
-        validators.address_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return ADDRESS_REGISTRATION
-
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.address_of_residence = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_passport_serial_handler(update: Update,
                                     context: CallbackContext) -> int:
     """Get and save passport serial."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.passport_serial_validator,
+                           attribute='passport_serial',
+                           state=PASSPORT_SERIAL,
+                           )
 
-    try:
-        validators.passport_serial_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return PASSPORT_SERIAL
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.passport_serial = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_passport_number_handler(update: Update,
                                     context: CallbackContext) -> int:
     """Get and save passport number."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.passport_number_validator,
+                           attribute='passport_number',
+                           state=PASSPORT_NUMBER,
+                           )
 
-    try:
-        validators.passport_number_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return PASSPORT_NUMBER
-
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.passport_number = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_passport_issued_by_handler(update: Update,
                                        context: CallbackContext) -> int:
     """Get and save the passport issued by whom."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.passport_issued_by_validator,
+                           attribute='passport_issued_by',
+                           state=PASSPORT_ISSUED_BY,
+                           )
 
-    try:
-        validators.passport_issued_by_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return PASSPORT_ISSUED_BY
-
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.passport_issued_by = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_passport_issued_at_handler(update: Update,
                                        context: CallbackContext) -> int:
     """Get and save when a passport is issued."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.date_validate,
+                           attribute='passport_date_of_issue',
+                           state=PASSPORT_ISSUED_AT,
+                           )
 
-    try:
-        validators.date_validate(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return PASSPORT_ISSUED_AT
-
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.passport_date_of_issue = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_close_person_name_handler(update: Update,
                                       context: CallbackContext) -> int:
     """Receive and save close person name. E.G. 'Аделина (Жена).'"""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.close_person_name_validator,
+                           attribute='close_person_name',
+                           state=CLOSE_PERSON_NAME,
+                           )
 
-    try:
-        validators.close_person_name_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return CLOSE_PERSON_NAME
-
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.close_person_name = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_close_person_phone_handler(update: Update,
                                        context: CallbackContext) -> int:
     """Receive and save close person phone."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.phone_number_validator,
+                           attribute='close_person_phone',
+                           state=CLOSE_PERSON_PHONE,
+                           )
 
-    try:
-        validators.phone_number_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return CLOSE_PERSON_PHONE
-
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.close_person_phone = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def editing_close_person_address_handler(update: Update,
                                          context: CallbackContext) -> int:
     """Address residence of close person different with address of user."""
-    text = update.message.text
+    new_state = editing_pd(update, context,
+                           validator=validators.address_validator,
+                           attribute='close_person_address',
+                           state=CLOSE_PERSON_ADDRESS,
+                           )
 
-    try:
-        validators.address_validator(text)
-    except ValidationError as e:
-        update.message.reply_text(e.message + '\n\nПовторите ввод.')
-        return CLOSE_PERSON_ADDRESS
-
-    u = User.get_user(update, context)
-    pd = u.personal_data
-    pd.close_person_address = text
-    pd.save()
-    get_my_personal_data_handler(update, context)
-
-    return ConversationHandler.END
+    return new_state
 
 
 def cancel_handler(update: Update, context: CallbackContext):
