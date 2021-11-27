@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def index(request):
-    return JsonResponse({"error": "Ты не туда зашел"})
+    return JsonResponse({'error': 'You got the wrong address'})
 
 
 class TelegramBotWebhookView(View):
@@ -32,7 +32,7 @@ class TelegramBotWebhookView(View):
             process_telegram_event(json.loads(request.body))
 
         # e.g. remove buttons, typing event
-        return JsonResponse({"ok": "POST request processed"})
+        return JsonResponse({'ok': 'POST request processed'})
     
     def get(self, request, *args, **kwargs):  # for debug
-        return JsonResponse({"ok": "Get request received! But nothing done"})
+        return JsonResponse({'ok': 'Get request received! But nothing done'})

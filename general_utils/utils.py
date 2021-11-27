@@ -3,7 +3,7 @@ import datetime
 from django.forms.models import model_to_dict
 
 from rentcars.models import Car, User
-from general_utils.constants import GENDER_CHOICES
+from general_utils.constants import GENDER_CHOICES_DICT
 from general_utils.static_text import PERSONAL_DATA
 
 
@@ -27,7 +27,7 @@ def get_finish_personal_data(user: User) -> str:
 
     pd = model_to_dict(user.personal_data, exclude='user')
 
-    pd['gender'] = GENDER_CHOICES[pd['gender']][1]
+    pd['gender'] = GENDER_CHOICES_DICT[pd['gender']]
     pd['birthday'] = datetime.date.strftime(pd['birthday'], '%d.%m.%Y')
     pd['passport_date_of_issue'] = datetime.date.strftime(
         pd['passport_date_of_issue'], '%d.%m.%Y'
