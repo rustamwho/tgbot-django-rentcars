@@ -359,9 +359,14 @@ class Contract(models.Model):
 
     def get_short_info(self):
         pd = self.user.personal_data
-        return (f'{pd.last_name} {pd.first_name[0]}.{pd.middle_name[0]}. '
-                f'от {self.get_approved_at_in_str()} '
-                f'({self.car.license_plate[:-3]})')
+        short_info = (
+            f'{pd.last_name} {pd.first_name[0]}.{pd.middle_name[0]}. '
+            f'от {self.get_approved_at_in_str()} ')
+        if self.car:
+            short_info += f'({self.car.license_plate[:-3]})'
+        else:
+            short_info += '(Машины нет)'
+        return short_info
 
     def get_full_name_user(self):
         pd = self.user.personal_data
