@@ -206,10 +206,13 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
 
     if data == manage_data.GET_ALL_USERS:
         text = utils.get_text_all_users()
-        query.edit_message_text(
-            text=text,
-            reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
-        )
+        try:
+            query.edit_message_text(
+                text=text,
+                reply_markup=keyboard_utils.get_admin_main_menu_keyboard()
+            )
+        except error.BadRequest:
+            return
     elif data == manage_data.GET_ARENDATORS:
         text = utils.get_text_all_arendators()
         try:
@@ -382,7 +385,11 @@ def admin_commands_handler(update: Update, context: CallbackContext) -> None:
         approved_at = active_contract.get_approved_at_in_str()
         closed_at = active_contract.get_closed_at_in_str()
         user_name = active_contract.get_full_name_user()
-        car_name = active_contract.car.get_short_info()
+
+        if active_contract.car:
+            car_name = active_contract.car.get_short_info()
+        else:
+            car_name = 'Машина не назначена'
 
         text = static_text.ABOUT_CONTRACT.format(
             user_name=user_name,
