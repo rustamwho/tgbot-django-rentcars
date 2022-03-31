@@ -70,7 +70,7 @@ def validate_and_save_text(validator: callable, state: str):
     return decorator
 
 
-@validate_and_save_text(validator=validators.russian_letters_validator,
+@validate_and_save_text(validator=validators.ru_eng_letters_validator,
                         state=LAST_NAME)
 def last_name_handler(update: Update, context: CallbackContext) -> str:
     """Get and save last name of user."""
@@ -81,7 +81,7 @@ def last_name_handler(update: Update, context: CallbackContext) -> str:
     return FIRST_NAME
 
 
-@validate_and_save_text(validator=validators.russian_letters_validator,
+@validate_and_save_text(validator=validators.ru_eng_letters_validator,
                         state=FIRST_NAME)
 def first_name_handler(update: Update, context: CallbackContext) -> str:
     """Get and save first name of user."""
@@ -92,7 +92,7 @@ def first_name_handler(update: Update, context: CallbackContext) -> str:
     return MIDDLE_NAME
 
 
-@validate_and_save_text(validator=validators.russian_letters_validator,
+@validate_and_save_text(validator=validators.ru_eng_letters_validator,
                         state=MIDDLE_NAME)
 def middle_name_handler(update: Update, context: CallbackContext) -> str:
     """Get and save patronymic of user. Send hello with full name."""

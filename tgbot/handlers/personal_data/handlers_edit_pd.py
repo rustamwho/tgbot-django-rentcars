@@ -241,7 +241,7 @@ def editing_pd(update: Update, context: CallbackContext,
 def editing_last_name_handler(update: Update, context: CallbackContext):
     """Get and save last name of user."""
     new_state = editing_pd(update, context,
-                           validator=validators.russian_letters_validator,
+                           validator=validators.ru_eng_letters_validator,
                            attribute='last_name',
                            state=LAST_NAME
                            )
@@ -253,7 +253,7 @@ def editing_first_name_handler(update: Update,
                                context: CallbackContext) -> int:
     """Get and save first name of user."""
     new_state = editing_pd(update, context,
-                           validator=validators.russian_letters_validator,
+                           validator=validators.ru_eng_letters_validator,
                            attribute='first_name',
                            state=FIRST_NAME
                            )
@@ -265,7 +265,7 @@ def editing_middle_name_handler(update: Update,
                                 context: CallbackContext) -> int:
     """Get and save patronymic of user. Send hello with full name."""
     new_state = editing_pd(update, context,
-                           validator=validators.russian_letters_validator,
+                           validator=validators.ru_eng_letters_validator,
                            attribute='middle_name',
                            state=MIDDLE_NAME
                            )

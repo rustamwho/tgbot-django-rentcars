@@ -4,11 +4,11 @@ from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 
 
-def russian_letters_validator(value: str) -> None:
+def ru_eng_letters_validator(value: str) -> None:
     """Checking that the string consists only of Russian letters."""
     reg_validator = RegexValidator(
-        regex=r'^[а-яА-Я]+$',
-        message='Разрешаются только русские буквы.'
+        regex=r'^[а-яА-Яa-zA-Z-]+$',
+        message='Разрешаются только русские/английские буквы и -.'
     )
     reg_validator(value)
 
@@ -71,15 +71,19 @@ def passport_serial_validator(value: str) -> None:
 
 def passport_number_validator(value: str) -> None:
     """The passport number consists of 6 digits."""
-    if not value.isdigit() or len(value) != 6:
-        raise ValidationError('Номер паспорта должен состоять из 6 цифр.')
+    reg_validator = RegexValidator(
+        regex=r'^[a-zA-Z0-9]+$',
+        message='Номер паспорта может содержать только английские буквы и '
+                'цифры.'
+    )
+    reg_validator(value)
 
 
 def passport_issued_by_validator(value: str):
     reg_validator = RegexValidator(
-        regex=r'^[а-яА-Я\s0-9-№.]+$',
-        message='В строке КЕМ ВЫДАН могут быть только русские буквы, пробелы '
-                'и цифры.'
+        regex=r'^[а-яА-Яa-zA-Z\s0-9-№.]+$',
+        message='В строке КЕМ ВЫДАН могут быть только русские/английские'
+                'буквы, пробелы и цифры.'
     )
     reg_validator(value)
 

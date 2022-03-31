@@ -30,17 +30,17 @@ class PersonalData(CreateUpdateTracker):
     first_name = models.CharField(
         max_length=100,
         verbose_name='Имя',
-        validators=[cstm_validators.russian_letters_validator]
+        validators=[cstm_validators.ru_eng_letters_validator]
     )
     middle_name = models.CharField(
         max_length=100,
         verbose_name='Отчество',
-        validators=[cstm_validators.russian_letters_validator]
+        validators=[cstm_validators.ru_eng_letters_validator]
     )
     last_name = models.CharField(
         max_length=100,
         verbose_name='Фамилия',
-        validators=[cstm_validators.russian_letters_validator]
+        validators=[cstm_validators.ru_eng_letters_validator]
     )
 
     gender = models.IntegerField(choices=GENDER_CHOICES, verbose_name='Пол')
